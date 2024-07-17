@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "/root/github/wlab_mobilestation"
+		},
+		{
+			"name": "mobilestation",
+			"path": "../mobilestation"
+		}
+	],
+	"settings": {
+		"nrf-connect.applications": [
+			"/root/github/wlab_mobilestation/mobilestation"
+		],
+		"files.associations": {
+			"kernel.h": "c"
+		},
+		"nrf-connect.topdir": "${nrf-connect.sdk:2.3.0}",
+		"nrf-connect.toolchain.path": "${nrf-connect.zephyrsdk:0.15.2}"
+	}
+}
