@@ -4,6 +4,9 @@
 			"path": "/root/github/wlab_mobilestation"
 		},
 		{
+			"path": "/root/ncs"
+		},
+		{
 			"name": "mobilestation",
 			"path": "../mobilestation"
 		}

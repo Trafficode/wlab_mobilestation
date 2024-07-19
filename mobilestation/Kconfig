@@ -1,0 +1,9 @@
+source "Kconfig.zephyr"
+
+config WDG_TIMEOUT_SEC
+	int "Watchdoog timeout"
+	default 30
+
+config BUFF_MAX_STRING_LEN
+	int "Maximum length for mqtt_broker or wlab name"
+	default 32
