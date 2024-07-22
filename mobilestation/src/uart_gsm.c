@@ -5,6 +5,8 @@
  * --------------------------------------------------------------------------*/
 #include "uart_gsm.h"
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,13 +16,36 @@
 
 static const struct device *const UartDev = DEVICE_DT_GET(DT_ALIAS(uart_gsm));
 
-void uart_gsm_init(void) {}
+void uart_gsm_init(void) {
+    ;
+}
 
-bool uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
+void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
     uart_tx(UartDev, tx_data, tx_len, 0);
 }
 
-bool uart_gsm_read_bytes(uint8_t *tx_data, size_t tx_len) {}
+bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout) {
+    uint8_t rchar = 0;
+    size_t read_len = 0;
+    bool result = false;
+    int64_t start_ts = k_uptime_get();
+
+    while (start_ts + timeout < k_uptime_get()) {
+        if (0 != uart_poll_in(UartDev, &rchar)) {
+            k_sleep(K_MSEC(1));
+            continue;
+        }
+
+        rx_data[read_len++] = rchar;
+
+        if (read_len == rx_len) {
+            result = true;
+            break;
+        }
+    }
+
+    return (result);
+}
 
 bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
     uint8_t rchar = 0;
@@ -30,7 +55,7 @@ bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
 
     while (start_ts + timeout < k_uptime_get()) {
         if (0 != uart_poll_in(UartDev, &rchar)) {
-            k_sleep(1);
+            k_sleep(K_MSEC(1));
             continue;
         }
 
@@ -41,11 +66,12 @@ bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
 
         if (rchar == '\n' || rchar == '\r') {
             // End of line got
+            *rx_len = read_len;
             result = true;
             break;
         }
 
-        if (rchar >= ' ' || rchar = < '~') {
+        if (rchar >= ' ' || rchar <= '~') {
             rx_line[read_len++] = rchar;
         }
     }
