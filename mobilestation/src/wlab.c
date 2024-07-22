@@ -25,34 +25,34 @@ struct wlab_buffer {
     int16_t sample_ts_val;
 };
 
-static bool wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
+static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
-static void wlab_buffer_init(struct wlab_buffer *buffer);
+static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
+
 static int64_t wlab_timestamp_get(void);
 static bool wlab_timestamp_sync(void);
-static bool wlab_timestamp_check(void);
+static void wlab_timestamp_check(void);
 
 LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
 
-struct wlab_buffer Temperature;
-struct wlab_buffer Humidity;
+struct wlab_buffer TempBuffer;
+struct wlab_buffer HumBuffer;
 
 static int64_t PublishPeriodSec;
 static int64_t SampleTsSec;
 static int64_t UpdateTsSec;
 static int64_t UpdateTsUptimeSec;
 
-void wlab_init(void) {
-    const struct device *const dev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
-    int rc;
+const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
-    if (!device_is_ready(dev)) {
-        LOG_ERR("Device %s is not ready\n", dev->name);
+void wlab_init(void) {
+    if (!device_is_ready(Sht3xDev)) {
+        LOG_ERR("Device %s is not ready\n", Sht3xDev->name);
     }
-    nvs_data_wlab_pub_period_get(&PublishPeriod);
+    nvs_data_wlab_pub_period_get(&PublishPeriodSec);
 
     while (!wlab_timestamp_sync()) {
-        LOG_ERR("Failed to sync timestamp...")
+        LOG_ERR("Failed to sync timestamp...");
         k_sleep(K_MSEC(2000));
     }
 
@@ -60,39 +60,48 @@ void wlab_init(void) {
     // Make sure that sample timestamp is exactly the second when the sample
     // should be. TS will be a bit bigger so substract this difference
     SampleTsSec = ts - (ts % PublishPeriodSec);
-    wlab_buffer_init(&Temperature, SampleTsSec);
-    wlab_buffer_init(&Humidity, SampleTsSec);
+    wlab_buffer_init(&TempBuffer, SampleTsSec);
+    wlab_buffer_init(&HumBuffer, SampleTsSec);
 }
 
 void wlab_proc(void) {
-    struct sensor_value temp, hum;
-    rc = sensor_sample_fetch(dev);
-    if (rc == 0) {
-        sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-        sensor_channel_get(dev, SENSOR_CHAN_HUMIDITY, &hum);
-    } else {
-        LOG_ERR("SHT3XD: failed: %d\n", rc);
-        return;
-    }
+    // struct sensor_value temp, hum;
+    // int16_t i_temp, i_humidity;
 
-    LOG_INF("SHT3XD: %.2f Cel ; %0.2f %%RH\n", sensor_value_to_double(&temp),
-            sensor_value_to_double(&hum));
+    // int sensor_rc = sensor_sample_fetch(Sht3xDev);
+    // if (0 == sensor_rc) {
+    //     sensor_channel_get(Sht3xDev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+    //     sensor_channel_get(Sht3xDev, SENSOR_CHAN_HUMIDITY, &hum);
 
-    int64_t ts = wlab_timestamp_get();
-    if (ts >= SampleTsSec + PublishPeriodSec) {
-        // Send sample and sync time
+    //     // static inline double sensor_value_to_double(
+    //     //     const struct sensor_value *val) {
+    //     //     return (double)val->val1 + (double)val->val2 / 1000000;
+    //     // }
+    //     i_temp = temp->val1 * 10 + temp->val2 / 100000;
+    //     i_humidity = hum->val1 * 10 + hum->val2 / 100000;
+    //     LOG_INF("SHT3XD: %d Cel ; %d %%RH\n", i_temp, i_humidity);
+    // } else {
+    //     LOG_ERR("SHT3XD: failed: %d\n", rc);
+    // }
 
-        int32_t sync_attempt = 0;
-        for (sync_attempt = 0; sync_attempt < 4; sync_attempt++) {
-        }
+    // int64_t ts = wlab_timestamp_get();
+    // if (ts >= SampleTsSec + PublishPeriodSec) {
+    //     // Send sample and sync time
 
-        if (sync_attempt < 4) {
-            // Confirm that timestamp is correct
-            wlab_timestamp_check();
-        }
+    //     int32_t sync_attempt = 0;
+    //     for (sync_attempt = 0; sync_attempt < 4; sync_attempt++) {
+    //     }
 
-        SampleTsSec += PublishPeriodSec;
-    }
+    //     if (sync_attempt < 4) {
+    //         // Confirm that timestamp is correct
+    //         wlab_timestamp_check();
+    //     }
+
+    //     SampleTsSec += PublishPeriodSec;
+    // } else if (0 == sensor_rc) {
+    //     wlab_buffer_commit(&TempBuffer, i_temp, ts);
+    //     wlab_buffer_commit(&HumBuffer, i_humidity, ts);
+    // }
 }
 
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts) {
@@ -100,22 +109,22 @@ static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts) {
     buffer->cnt = 0;
     buffer->max = INT16_MIN;
     buffer->min = INT16_MAX;
-    buffer->max_ts = 0;
-    buffer->min_ts = 0;
+    buffer->max_ts_offset = 0;
+    buffer->min_ts_offset = 0;
     buffer->sample_ts_val = INT16_MAX;
     buffer->sample_ts = ts;
 }
 
 static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts) {
-    if (val > buffer->_max) {
+    if (val > buffer->max) {
         buffer->max = val;
-        buffer->max_ts = buffer->sample_ts - ts;
+        buffer->max_ts_offset = buffer->sample_ts - ts;
     }
 
-    if (val < buffer->_min) {
+    if (val < buffer->min) {
         buffer->min = val;
-        buffer->min_ts = ts - (ts % INT64_C(60));
+        buffer->min_ts_offset = ts - (ts % INT64_C(60));
     }
 
     buffer->buff += (int32_t)val;
@@ -142,7 +151,7 @@ static bool wlab_timestamp_sync(void) {
     return (rc);
 }
 
-static bool wlab_timestamp_check(void) {
+static void wlab_timestamp_check(void) {
     // in case of very long publish period there can be situation where time after update
     // will not be bigger that last SampleTs + PublishPeriod. Lets verify it here
 

@@ -205,7 +205,7 @@ void nvs_data_wlab_pub_period_get(int64_t *pub_period) {
     int ret =
         nvs_read(&Fs, NVS_ID_WLAB_PUB_PERIOD, pub_period, wlab_pub_period_len);
     if (ret > 0) {
-        LOG_DBG("wlab pub period: %u secs", *pub_period);
+        LOG_DBG("wlab pub period: %" PRId64 " secs", *pub_period);
     } else {
         LOG_WRN("No wlab publish period found, default 10 min");
         memset(pub_period, INT64_C(10 * 60), wlab_pub_period_len);

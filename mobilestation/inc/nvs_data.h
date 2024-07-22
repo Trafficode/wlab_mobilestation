@@ -110,7 +110,7 @@ void nvs_data_wlab_pub_period_get(int64_t *pub_period);
  *
  * @param pub_period Pointer with data do save
  */
-int nvs_data_wlab_pub_period_set(uint32_t *pub_period);
+int nvs_data_wlab_pub_period_set(int64_t *pub_period);
 
 #endif /* NVS_DATA_H_ */
 /* ---------------------------------------------------------------------------
