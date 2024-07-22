@@ -103,7 +103,7 @@ int nvs_data_wlab_gps_position_set(struct gps_position *gps_pos);
  *
  * @param pub_period Destination of wlab gps position
  */
-void nvs_data_wlab_pub_period_get(uint32_t *pub_period);
+void nvs_data_wlab_pub_period_get(int64_t *pub_period);
 
 /**
  * @brief Save wlab publish period.

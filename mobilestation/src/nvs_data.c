@@ -198,17 +198,17 @@ int nvs_data_wlab_gps_position_set(struct gps_position *gps_pos) {
     return (ret);
 }
 
-void nvs_data_wlab_pub_period_get(uint32_t *pub_period) {
+void nvs_data_wlab_pub_period_get(int64_t *pub_period) {
     __ASSERT((pub_period != NULL), "Null pointer passed");
-    size_t wlab_pub_period_len = sizeof(uint64_t);
+    size_t wlab_pub_period_len = sizeof(int64_t);
 
     int ret =
         nvs_read(&Fs, NVS_ID_WLAB_PUB_PERIOD, pub_period, wlab_pub_period_len);
     if (ret > 0) {
         LOG_DBG("wlab pub period: %u secs", *pub_period);
     } else {
-        LOG_WRN("No wlab custom device found, clear...");
-        memset(pub_period, 0x00, wlab_pub_period_len);
+        LOG_WRN("No wlab publish period found, default 10 min");
+        memset(pub_period, INT64_C(10 * 60), wlab_pub_period_len);
         if (wlab_pub_period_len == nvs_write(&Fs, NVS_ID_WLAB_PUB_PERIOD,
                                              pub_period, wlab_pub_period_len)) {
             LOG_DBG("Wlab device id clear success");
@@ -218,9 +218,9 @@ void nvs_data_wlab_pub_period_get(uint32_t *pub_period) {
     }
 }
 
-int nvs_data_wlab_pub_period_set(uint32_t *pub_period) {
+int nvs_data_wlab_pub_period_set(int64_t *pub_period) {
     __ASSERT((pub_period != NULL), "Null pointer passed");
-    size_t wlab_pub_period_len = sizeof(uint64_t);
+    size_t wlab_pub_period_len = sizeof(int64_t);
 
     int ret = 0;
     if (wlab_pub_period_len == nvs_write(&Fs, NVS_ID_WLAB_PUB_PERIOD,

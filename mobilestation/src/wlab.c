@@ -1,0 +1,162 @@
+/* ---------------------------------------------------------------------------
+ *  mobilestation
+ * ---------------------------------------------------------------------------
+ *  Name: wlab.c
+ * --------------------------------------------------------------------------*/
+#include "wlab.h"
+
+#include <stdint.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_version.h>
+#include <zephyr/logging/log.h>
+
+#include "nvs_data.h"
+#include "version.h"
+
+struct wlab_buffer {
+    int16_t min;
+    int16_t max;
+    int16_t max_ts_offset;
+    int16_t min_ts_offset;
+    int32_t buff;
+    int32_t cnt;
+    int64_t sample_ts;
+    int16_t sample_ts_val;
+};
+
+static bool wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
+                               int64_t ts);
+static void wlab_buffer_init(struct wlab_buffer *buffer);
+static int64_t wlab_timestamp_get(void);
+static bool wlab_timestamp_sync(void);
+static bool wlab_timestamp_check(void);
+
+LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
+
+struct wlab_buffer Temperature;
+struct wlab_buffer Humidity;
+
+static int64_t PublishPeriodSec;
+static int64_t SampleTsSec;
+static int64_t UpdateTsSec;
+static int64_t UpdateTsUptimeSec;
+
+void wlab_init(void) {
+    const struct device *const dev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
+    int rc;
+
+    if (!device_is_ready(dev)) {
+        LOG_ERR("Device %s is not ready\n", dev->name);
+    }
+    nvs_data_wlab_pub_period_get(&PublishPeriod);
+
+    while (!wlab_timestamp_sync()) {
+        LOG_ERR("Failed to sync timestamp...")
+        k_sleep(K_MSEC(2000));
+    }
+
+    int64_t ts = wlab_timestamp_get();
+    // Make sure that sample timestamp is exactly the second when the sample
+    // should be. TS will be a bit bigger so substract this difference
+    SampleTsSec = ts - (ts % PublishPeriodSec);
+    wlab_buffer_init(&Temperature, SampleTsSec);
+    wlab_buffer_init(&Humidity, SampleTsSec);
+}
+
+void wlab_proc(void) {
+    struct sensor_value temp, hum;
+    rc = sensor_sample_fetch(dev);
+    if (rc == 0) {
+        sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+        sensor_channel_get(dev, SENSOR_CHAN_HUMIDITY, &hum);
+    } else {
+        LOG_ERR("SHT3XD: failed: %d\n", rc);
+        return;
+    }
+
+    LOG_INF("SHT3XD: %.2f Cel ; %0.2f %%RH\n", sensor_value_to_double(&temp),
+            sensor_value_to_double(&hum));
+
+    int64_t ts = wlab_timestamp_get();
+    if (ts >= SampleTsSec + PublishPeriodSec) {
+        // Send sample and sync time
+
+        int32_t sync_attempt = 0;
+        for (sync_attempt = 0; sync_attempt < 4; sync_attempt++) {
+        }
+
+        if (sync_attempt < 4) {
+            // Confirm that timestamp is correct
+            wlab_timestamp_check();
+        }
+
+        SampleTsSec += PublishPeriodSec;
+    }
+}
+
+static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts) {
+    buffer->buff = 0;
+    buffer->cnt = 0;
+    buffer->max = INT16_MIN;
+    buffer->min = INT16_MAX;
+    buffer->max_ts = 0;
+    buffer->min_ts = 0;
+    buffer->sample_ts_val = INT16_MAX;
+    buffer->sample_ts = ts;
+}
+
+static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
+                               int64_t ts) {
+    if (val > buffer->_max) {
+        buffer->max = val;
+        buffer->max_ts = buffer->sample_ts - ts;
+    }
+
+    if (val < buffer->_min) {
+        buffer->min = val;
+        buffer->min_ts = ts - (ts % INT64_C(60));
+    }
+
+    buffer->buff += (int32_t)val;
+    buffer->cnt++;
+}
+
+static int64_t wlab_timestamp_get(void) {
+    int64_t uptime_sec = k_uptime_get() / 1000;
+    return (UpdateTsSec + (uptime_sec - UpdateTsUptimeSec));
+}
+
+static bool wlab_timestamp_sync(void) {
+    bool rc = false;
+    // ret = sntp_simple("0.pl.pool.ntp.org", 4000, &sntp_time);
+    // if (0 == ret) {
+    //     SntpSyncSec = (int64_t)sntp_time.seconds;
+    //     UptimeSyncMs = k_uptime_get();
+    //     LOG_INF("Acquire SNTP success");
+    // } else {
+    //     LOG_ERR("Failed to acquire SNTP, code %d", ret);
+    // }
+    UpdateTsSec = 0;
+    UpdateTsUptimeSec = k_uptime_get() / 1000;
+    return (rc);
+}
+
+static bool wlab_timestamp_check(void) {
+    // in case of very long publish period there can be situation where time after update
+    // will not be bigger that last SampleTs + PublishPeriod. Lets verify it here
+
+    bool check_status = false;
+    do {
+        if (wlab_timestamp_get() < (SampleTsSec + PublishPeriodSec)) {
+            // keep continue waiting
+            k_sleep(K_MSEC(1000));
+        } else {
+            check_status = true;
+        }
+    } while (!check_status);
+}
+
+/* ---------------------------------------------------------------------------
+ * end of file
+ * --------------------------------------------------------------------------*/
