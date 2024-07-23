@@ -223,7 +223,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
     // AT+CIPSTART="TCP","194.42.111.14","1883"
     // "CONNECT OK"
     return gsm_modem_cmd_base(at_cipstart, sizeof(at_cipstart), "CONNECT OK",
-                            INT64_C(4000)));
+                              INT64_C(4000));
 }
 
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
