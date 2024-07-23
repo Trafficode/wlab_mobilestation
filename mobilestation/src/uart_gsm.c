@@ -17,21 +17,7 @@
 
 static const struct device *const UartDev = DEVICE_DT_GET(DT_ALIAS(uart_gsm));
 
-const struct gpio_dt_spec External3v3Gpio =
-    GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), external3v3_gpios);
-
-void uart_gsm_init(void) {
-    // if (!device_is_ready(sPowerGpio.port)) {
-    //     LOG_ERR("Battery measurement GPIO device not ready");
-    //     return -ENODEV;
-    // }
-
-    // err = gpio_pin_configure_dt(&sPowerGpio, GPIO_OUTPUT_INACTIVE);
-    // if (err != 0) {
-    //     LOG_ERR("Failed to configure battery measurement GPIO %d", err);
-    //     return err;
-    // }
-}
+void uart_gsm_init(void) {}
 
 void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
     uart_tx(UartDev, tx_data, tx_len, 0);

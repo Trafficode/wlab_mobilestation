@@ -6,6 +6,7 @@
 #include "wlab.h"
 
 #include <stdint.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/kernel_version.h>
@@ -45,11 +46,20 @@ static int64_t UpdateTsUptimeSec;
 
 const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
+const struct gpio_dt_spec External3v3Pin =
+    GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), external3v3_gpios);
+
 void wlab_init(void) {
     if (!device_is_ready(Sht3xDev)) {
         LOG_ERR("Device %s is not ready\n", Sht3xDev->name);
     }
     nvs_data_wlab_pub_period_get(&PublishPeriodSec);
+
+    if (!device_is_ready(External3v3Pin.port)) {
+        LOG_ERR("External3v3Pin enable not ready");
+    }
+
+    gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
 
     while (!wlab_timestamp_sync()) {
         LOG_ERR("Failed to sync timestamp...");
