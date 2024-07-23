@@ -38,7 +38,7 @@ print('AT+CIPSEND')
 print(connect_packet_hex)
 
 packet_bytes = bytearray()
-packet_bytes.extend(generate_mqtt_publish_packet('/wlabdb/bin', '123'))
+packet_bytes.extend(generate_mqtt_publish_packet('/wlabdb/test', 'Test...'))
 packet_bytes.extend(b'\x1A')
 pub_packet_hex = ''
 for b in packet_bytes:

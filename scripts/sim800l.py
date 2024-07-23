@@ -11,6 +11,8 @@ import time
 # AT+CPIN?              Check SIM card status
 # AT+CSQ                Signal quality check
 # AT+CGATT=1            Attach to GPRS service
+# AT+CLTS=1             Enable the network time synchronization
+# AT+CCLK?              Check the current time: +CCLK: "21/07/17,12:34:56+00"
 # AT+CIPSHUT            Reset IP session
 # AT+CIPSTATUS          Check IP status
 # AT+CIPMUX=0           Set single connection mode
@@ -27,7 +29,7 @@ import time
 # AT+CIPPING="8.8.8.8"
 
 # AT+CIPSEND Connect
-# 10 0A 00 04 4D 51 54 54 04 02 00 3C 1A
+# 10 0C 00 04 4D 51 54 54 04 02 00 3C 00 00 1A
 # 10 13 00 04 4d 51 54 54 04 02 00 3c 00 07 62 69 62 61 31 32 33 1A    
 # 10 13 00 04 4D 51 54 54 04 02 00 3C 00 07 62 69 62 61 31 32 33 1A     # biba123
 # 10 10 00 04 4D 51 54 54 04 02 00 3C 00 04 44 49 47 49 1A              # DIGI
@@ -36,6 +38,11 @@ import time
 # 10 10 00 04 4D 51 54 54 04 02 00 3C 00 04 44 49 47 49 1A  # DIGI
 # AT+CIPSEND Publish
 # 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 6E 31 32 33 1A  # message: 123, topic /wlabdb/bin
+# AT+CIPSEND
+# 30 15 00 0C 2F 77 6C 61 62 64 62 2F 74 65 73 74 54 65 73 74 2E 2E 2E 1A 
+
+# AT+CIPSEND
+# 10 0C 00 04 4D 51 54 54 04 02 00 3C 00 00 30 15 00 0C 2F 77 6C 61 62 64 62 2F 74 65 73 74 54 65 73 74 2E 2E 2F 30 15 00 0C 2F 77 6C 61 62 64 62 2F 74 65 73 74 54 65 73 74 2E 2E 2A 1A
 
 # AT+CIPCLOSE
 

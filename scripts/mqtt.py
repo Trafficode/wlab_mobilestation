@@ -4,7 +4,7 @@ import struct
 # Define the MQTT broker details
 broker = "194.42.111.14"
 port = 1883
-topic = "/wlabdb/bin"
+topic = "/wlabdb/test"
 
 def wlab_bin2dict(packet):
     packet_dict = {
@@ -54,22 +54,22 @@ def wlab_bin2old(packet_dict):
 
 # Callback function when a message is received
 def on_message(client, userdata, message):
-    # print(f"Received message: {message.payload.decode()} on topic {message.topic}")
-    _dict = wlab_bin2dict(message.payload)
-    print(_dict)
-    wlab_old = wlab_bin2old(_dict)
-    print(wlab_old)
+    print(f"Received message: {message.payload.decode()} on topic {message.topic}")
+    # _dict = wlab_bin2dict(message.payload)
+    # print(_dict)
+    # wlab_old = wlab_bin2old(_dict)
+    # print(wlab_old)
 
 # Callback function when connected to the broker
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected successfully to the broker")
         client.subscribe(topic)  # Subscribe to the topic
-        pub_packet = bytearray()
-        pub_packet.extend(b'\x01\x10\x21\x32\xa0\xfa\x03\x50\xd4\x12\x00\x00\x00\x00\x00')
-        pub_packet.extend(b'\x96\x00\x7c\x00\x44\x01\x20\xff\xe0\x00\x18\x00\x21\x00\x2d')
-        pub_packet.extend(b'\x0f\x55\x20\x00\x4d\x01\x70\x01')
-        client.publish(topic, pub_packet)
+        # pub_packet = bytearray()
+        # pub_packet.extend(b'\x01\x10\x21\x32\xa0\xfa\x03\x50\xd4\x12\x00\x00\x00\x00\x00')
+        # pub_packet.extend(b'\x96\x00\x7c\x00\x44\x01\x20\xff\xe0\x00\x18\x00\x21\x00\x2d')
+        # pub_packet.extend(b'\x0f\x55\x20\x00\x4d\x01\x70\x01')
+        # client.publish(topic, pub_packet)
     else:
         print(f"Connect failed with code {rc}")
 
