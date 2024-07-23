@@ -46,6 +46,13 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout) {
     return (result);
 }
 
+void uart_gsm_rx_clear(void) {
+    uint8_t rchar = 0;
+    while (0 == uart_poll_in(UartDev, &rchar)) {
+        ;   // skip read data
+    }
+}
+
 bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
     uint8_t rchar = 0;
     size_t read_len = 0;

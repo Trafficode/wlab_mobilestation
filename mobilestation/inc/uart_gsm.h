@@ -43,6 +43,12 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout);
  */
 bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout);
 
+/**
+ * @brief uart_gsm_rx_clear
+ * 
+ */
+void uart_gsm_rx_clear(void);
+
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/
