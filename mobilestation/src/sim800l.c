@@ -180,29 +180,40 @@ bool gsm_modem_wakeup(void) {
     bool result = false;
     // To wake up the module from sleep mode, pull the DTR pin low.
     // This action will wake up the module and bring it back to active mode.
-
     // AT            To confirm wheather module woken up
     // OK
-    char at[] = "\nAT\n";
-    if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 2000)) {
+    // char at[] = "\nAT\n";
+    // if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 2000)) {
+    //     goto DONE;
+    // }
+
+    char at_wakeup[] = "\nAT+CFUN=1\n";
+    if (!gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup), "OK", 1000)) {
         goto DONE;
     }
+
+    // wait for +cpin: ready
     return (result);
 }
 
 bool gsm_modem_sleep(void) {
     bool result = false;
 
-    // AT+CSCLK=1            Enter into sleep mode
-    // OK
-    char at_csclk[] = "\nAT+CSCLK=1\n";
-    if (!gsm_modem_cmd_base(at_csclk, sizeof(at_csclk), "OK", 1000)) {
-        goto DONE;
-    }
-
+    // AT+CSCLK=1   Enter into sleep mode, wake up with dtr
     // The Data Terminal Ready (DTR) pin must be pulled high for the module to enter sleep mode.
     // Configure the DTR pin to high after issuing the AT+CSCLK=1 command.
 
+    // AT+CFUN=0    Minimum functionality. Lowest power consumption, RF disabled, 0.796mA.
+    // AT+CFUN=1    Full functionality (default).
+    // AT+CFUN=4    Flight mode (disable RF function).
+    // OK
+    char at_sleep[] = "\nAT+CFUN=0\n";
+    if (!gsm_modem_cmd_base(at_sleep, sizeof(at_sleep), "OK", 1000)) {
+        goto DONE;
+    }
+
+    res = true;
+DONE:
     return (result);
 }
 

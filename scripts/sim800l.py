@@ -20,6 +20,146 @@ import time
 # AT+CIICR              Bring up wireless connection
 # AT+CIFSR              Get IP address (expecting a non-empty response)
 # AT+CREG?              Check gprs conection expected response: "+CREG: 0,1" "+CREG: 0,5"
+# AT+CFUN=0 [0,1,4]     Enter lowest energy consumption
+# 15:59:21:232 ---- Sent utf8 encoded message: "AT+CGATT=1\r" ----
+# 15:59:21:232 -> AT+CGATT=1
+# 15:59:21:232 -> OK
+# 15:59:28:254 ---- Sent utf8 encoded message: "AT+CLTS=1\r" ----
+# 15:59:28:256 -> AT+CLTS=1
+# 15:59:28:256 -> OK
+# 15:59:34:886 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 15:59:34:890 -> AT+CCLK?
+# 15:59:34:890 -> +CCLK: "04/01/01,00:01:56+08"
+# 15:59:34:890 -> 
+# 15:59:34:890 -> OK
+# 16:00:09:742 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:00:09:745 -> AT+CCLK?
+# 16:00:09:745 -> +CCLK: "04/01/01,00:02:30+08"
+# 16:00:09:745 -> 
+# 16:00:09:745 -> OK
+# 16:00:23:502 ---- Sent utf8 encoded message: "AT+CIPMUX=0\r" ----
+# 16:00:23:504 -> AT+CIPMUX=0
+# 16:00:23:504 -> OK
+# 16:00:28:027 ---- Sent utf8 encoded message: "AT+CSTT=\"TM\",\"\",\"\"\r" ----
+# 16:00:28:031 -> AT+CSTT="TM","",""
+# 16:00:28:031 -> OK
+# 16:00:33:783 ---- Sent utf8 encoded message: "AT+CIICR\r" ----
+# 16:00:33:783 -> AT+CIICR
+# 16:00:34:464 -> OK
+# 16:00:40:773 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:00:40:777 -> AT+CCLK?
+# 16:00:40:777 -> +CCLK: "04/01/01,00:03:01+08"
+# 16:00:40:777 -> 
+# 16:00:40:777 -> OK
+# 16:00:53:453 ---- Sent utf8 encoded message: "AT+CIFSR\r" ----
+# 16:00:53:455 -> AT+CIFSR
+# 16:00:53:455 -> 10.4.114.26
+# 16:00:58:973 ---- Sent utf8 encoded message: "AT+CREG?\r" ----
+# 16:00:58:977 -> AT+CREG?
+# 16:00:58:977 -> +CREG: 0,5
+# 16:00:58:977 -> 
+# 16:00:58:977 -> OK
+# 16:01:30:669 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:01:30:674 -> AT+CCLK?
+# 16:01:30:674 -> +CCLK: "04/01/01,00:03:51+08"
+# 16:01:30:674 -> 
+# 16:01:30:674 -> OK
+# 16:01:36:159 ---- Sent utf8 encoded message: "AT+CLTS=1\r" ----
+# 16:01:36:161 -> AT+CLTS=1
+# 16:01:36:161 -> OK
+# 16:01:41:695 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:01:41:742 -> AT+CCLK?
+# 16:01:41:742 -> +CCLK: "04/01/01,00:04:02+08"
+# 16:01:41:742 -> 
+# 16:01:41:742 -> OK
+# 16:02:18:940 ---- Sent utf8 encoded message: "AT&F\r" ----
+# 16:02:18:942 -> AT&F
+# 16:02:18:942 -> OK
+# 16:02:25:397 ---- Sent utf8 encoded message: "AT+CLTS=1\r" ----
+# 16:02:25:398 -> AT+CLTS=1
+# 16:02:25:398 -> OK
+# 16:02:30:799 ---- Sent utf8 encoded message: "AT+CGATT=1\r" ----
+# 16:02:30:800 -> AT+CGATT=1
+# 16:02:30:800 -> OK
+# 16:02:39:648 ---- Sent utf8 encoded message: "AT+CIICR\r" ----
+# 16:02:39:647 -> AT+CIICR
+# 16:02:39:647 -> ERROR
+# 16:02:46:599 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:02:46:604 -> AT+CCLK?
+# 16:02:46:604 -> +CCLK: "04/01/01,00:05:07+08"
+# 16:02:46:604 -> 
+# 16:02:46:604 -> OK
+# 16:02:52:378 ---- Sent utf8 encoded message: " AT+CIPSHUT\r" ----
+# 16:02:52:377 ->  AT+CIPSHUT
+# 16:02:53:257 -> SHUT OK
+# 16:02:57:941 ---- Sent utf8 encoded message: "AT+CIPSTATUS\r" ----
+# 16:02:57:945 -> AT+CIPSTATUS
+# 16:02:57:945 -> OK
+# 16:02:57:945 -> 
+# 16:02:57:945 -> STATE: IP INITIAL
+# 16:03:02:590 ---- Sent utf8 encoded message: "AT+CIPMUX=0 \r" ----
+# 16:03:02:591 -> AT+CIPMUX=0 
+# 16:03:02:591 -> OK
+# 16:03:07:796 ---- Sent utf8 encoded message: "AT+CSTT=\"TM\",\"\",\"\"\r" ----
+# 16:03:07:799 -> AT+CSTT="TM","",""
+# 16:03:07:799 -> OK
+# 16:03:12:740 ---- Sent utf8 encoded message: "AT+CIICR\r" ----
+# 16:03:12:742 -> AT+CIICR
+# 16:03:13:218 -> OK
+# 16:03:17:926 ---- Sent utf8 encoded message: "AT+CIFSR\r" ----
+# 16:03:17:929 -> AT+CIFSR
+# 16:03:17:929 -> 10.6.197.75
+# 16:03:22:431 ---- Sent utf8 encoded message: "AT+CREG?\r" ----
+# 16:03:22:434 -> AT+CREG?
+# 16:03:22:434 -> +CREG: 0,5
+# 16:03:22:434 -> 
+# 16:03:22:434 -> OK
+# 16:03:27:918 ---- Sent utf8 encoded message: "AT+CLTS=1\r" ----
+# 16:03:27:920 -> AT+CLTS=1
+# 16:03:27:920 -> OK
+# 16:03:34:478 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:03:34:481 -> AT+CCLK?
+# 16:03:34:481 -> +CCLK: "04/01/01,00:05:55+08"
+# 16:03:34:481 -> 
+# 16:03:34:481 -> OK
+# 16:03:37:063 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:03:37:069 -> AT+CCLK?
+# 16:03:37:069 -> +CCLK: "04/01/01,00:05:58+08"
+# 16:03:37:069 -> 
+# 16:03:37:069 -> OK
+# 16:03:49:396 ---- Sent utf8 encoded message: "AT+CFUN=0\r" ----
+# 16:03:49:398 -> AT+CFUN=0
+# 16:03:49:415 -> +PDP: DEACT
+# 16:03:49:658 -> 
+# 16:03:49:658 -> +CPIN: NOT READY
+# 16:03:54:436 -> 
+# 16:03:54:436 -> OK
+# 16:04:11:936 ---- Sent utf8 encoded message: "AT+CFUN=1\r" ----
+# 16:04:11:938 -> AT+CFUN=1
+# 16:04:13:091 -> +CPIN: READY
+# 16:04:13:091 -> 
+# 16:04:13:091 -> OK
+# 16:04:15:175 -> 
+# 16:04:15:175 -> SMS Ready
+# 16:04:15:209 -> 
+# 16:04:15:209 -> Call Ready
+# 16:04:19:745 -> 
+# 16:04:19:745 -> *PSUTTZ: 2024,7,24,14,4,19,"+8",1
+# 16:04:19:745 -> 
+# 16:04:19:745 -> DST: 1
+# 16:04:19:745 -> 
+# 16:04:19:745 -> +CIEV: 10,"26003","Orange","Orange", 0, 0
+# 16:04:22:140 -> 
+# 16:04:22:140 -> *PSUTTZ: 2024,7,24,14,4,22,"+8",1
+# 16:04:22:140 -> 
+# 16:04:22:140 -> DST: 1
+# 16:04:22:140 -> 
+# 16:04:22:140 -> +CIEV: 10,"26003","Orange","Orange", 0, 0
+# 16:05:01:368 ---- Sent utf8 encoded message: "AT+CCLK?\r" ----
+# 16:05:01:369 -> AT+CCLK?
+# 16:05:01:369 -> +CCLK: "24/07/24,16:05:01+08"
+# 16:05:01:369 -> 
+# 16:05:01:369 -> OK
 
 # TCP connection to broker start
 # AT+CIPSTART="TCP","194.42.111.14","1883"
