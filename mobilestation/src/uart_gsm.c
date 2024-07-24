@@ -23,13 +23,13 @@ void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
     uart_tx(UartDev, tx_data, tx_len, 0);
 }
 
-bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout) {
+bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int32_t timeout) {
     uint8_t rchar = 0;
     size_t read_len = 0;
     bool result = false;
     int64_t start_ts = k_uptime_get();
 
-    while (start_ts + timeout < k_uptime_get()) {
+    while ((start_ts + (int64_t)timeout) < k_uptime_get()) {
         if (0 != uart_poll_in(UartDev, &rchar)) {
             k_sleep(K_MSEC(1));
             continue;

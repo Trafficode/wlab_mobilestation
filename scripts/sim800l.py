@@ -30,6 +30,15 @@ import time
 
 # AT+CIPSEND Connect
 # 10 0C 00 04 4D 51 54 54 04 02 00 3C 00 00 1A
+# AT+CIPSEND=14
+# 10 0C 00 04 4D 51 54 54 04 02 00 3C 00 00
+# server answer: 0a 53 45 4e 44 20 4f 4b 0a 20 02 00 00(SEND OK, 20 02 00 00 - server answer)
+# https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc385349251
+# 20 - mqtt control packet
+# 02 - remainging length
+# 00 - session not present, 01 - session present
+# 00 - connect return code, 0 - success
+
 # 10 13 00 04 4d 51 54 54 04 02 00 3c 00 07 62 69 62 61 31 32 33 1A    
 # 10 13 00 04 4D 51 54 54 04 02 00 3C 00 07 62 69 62 61 31 32 33 1A     # biba123
 # 10 10 00 04 4D 51 54 54 04 02 00 3C 00 04 44 49 47 49 1A              # DIGI
@@ -48,6 +57,12 @@ import time
 
 # AT+GMR   What is firmware version
 # Revision:1418B04SIM800L24
+
+# 08:03:30:466 ---- Sent hex encoded message: "100C00044D5154540402003C00001A" ----
+# 08:03:30:468 -> 
+# 08:03:30:468 -> SEND FAIL
+# 08:03:30:619 -> 
+# 08:03:30:619 -> CLOSED
 
 def send_at_command(ser, command, expected_response, timeout=2):
     ser.write((command + '\r').encode())
