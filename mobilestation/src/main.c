@@ -11,6 +11,7 @@
 
 #include "nvs_data.h"
 #include "version.h"
+#include "wlab.h"
 
 LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
@@ -25,10 +26,12 @@ int main(void) {
             SYS_KERNEL_VER_PATCHLEVEL(ver));
 
     nvs_data_init();
+    uart_gsm_init();
+    wlab_init();
 
     for (;;) {
         LOG_INF("Main loop, systick = %" PRIi64, k_uptime_get());
-
+        wlab_proc();
         k_sleep(K_MSEC(2000));
     }
     return 0;

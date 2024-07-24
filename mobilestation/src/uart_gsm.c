@@ -5,6 +5,7 @@
  * --------------------------------------------------------------------------*/
 #include "uart_gsm.h"
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -14,13 +15,17 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 static const struct device *const UartDev = DEVICE_DT_GET(DT_ALIAS(uart_gsm));
+
+LOG_MODULE_REGISTER(GSMU, LOG_LEVEL_DBG);
 
 void uart_gsm_init(void) {}
 
 void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
-    uart_tx(UartDev, tx_data, tx_len, 0);
+    int rc = (UartDev, tx_data, tx_len, 0);
+    LOG_INF("rc = %d", rc);
 }
 
 bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
@@ -61,8 +66,17 @@ bool uart_gsm_read_line(char *rx_line, size_t max_len, int32_t timeout) {
 
     max_len--;   // \0 has to be added at the end of line to make it as string
     while (start_ts + (int64_t)timeout < k_uptime_get()) {
-        if (0 != uart_poll_in(UartDev, &rchar)) {
-            k_sleep(K_MSEC(1));
+        int32_t chrcnt = 0;   // 100ms timeout for character
+        while (chrcnt < 100) {
+            if (0 != uart_poll_in(UartDev, &rchar)) {
+                k_sleep(K_MSEC(1));
+                chrcnt++;
+            } else {
+                break;
+            }
+        }
+
+        if (100 == chrcnt) {
             continue;
         }
 

@@ -13,6 +13,7 @@
 #include <zephyr/logging/log.h>
 
 #include "nvs_data.h"
+#include "sim800l.h"
 #include "version.h"
 
 struct wlab_buffer {
@@ -61,20 +62,29 @@ void wlab_init(void) {
 
     gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
 
-    while (!wlab_timestamp_sync()) {
-        LOG_ERR("Failed to sync timestamp...");
-        k_sleep(K_MSEC(2000));
-    }
+    // while (!wlab_timestamp_sync()) {
+    //     LOG_ERR("Failed to sync timestamp...");
+    //     k_sleep(K_MSEC(2000));
+    // }
 
-    int64_t ts = wlab_timestamp_get();
-    // Make sure that sample timestamp is exactly the second when the sample
-    // should be. TS will be a bit bigger so substract this difference
-    SampleTsSec = ts - (ts % PublishPeriodSec);
-    wlab_buffer_init(&TempBuffer, SampleTsSec);
-    wlab_buffer_init(&HumBuffer, SampleTsSec);
+    // int64_t ts = wlab_timestamp_get();
+    // // Make sure that sample timestamp is exactly the second when the sample
+    // // should be. TS will be a bit bigger so substract this difference
+    // SampleTsSec = ts - (ts % PublishPeriodSec);
+    // wlab_buffer_init(&TempBuffer, SampleTsSec);
+    // wlab_buffer_init(&HumBuffer, SampleTsSec);
+
+    if (!gsm_modem_config()) {
+        LOG_ERR("Configure GSM modem failed");
+    }
 }
 
 void wlab_proc(void) {
+    if (!gsm_modem_config()) {
+        LOG_ERR("Configure GSM modem failed");
+    } else {
+        LOG_INF("GSM communication OOK!");
+    }
     // struct sensor_value temp, hum;
     // int16_t i_temp, i_humidity;
 

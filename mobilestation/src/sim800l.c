@@ -87,9 +87,11 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 
     uart_gsm_rx_clear();
     uart_gsm_send(data, len);
+    LOG_INF("> %s", data + 1);
     int64_t rl_timeout = (int64_t)timeout;
     do {
         if (uart_gsm_read_line(read_line, sizeof(read_line), timeout)) {
+            LOG_INF("< %s", read_line);
             if (0 == strstr(read_line, expected)) {
                 res = true;
                 break;
@@ -115,61 +117,68 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 bool gsm_modem_config(void) {
     bool res = false;
 
-    // # ATE0                  Echo OFF
+    // # AT                  Echo OFF
     // "OK"
-    char at_e0[] = "\nATE0\n";
-    if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0), "OK", 100)) {
+    char at[] = "\nAT\n";
+    if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 100)) {
         goto DONE;
     }
+
+    // // # ATE0                  Echo OFF
+    // // "OK"
+    // char at_e0[] = "\nATE0\n";
+    // if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // AT+CIURC=0   # Disable "Call Ready" message
     // OK
-    char at_ciurc[] = "\nAT+CIURC=0\n";
-    if (!gsm_modem_cmd_base(at_ciurc, sizeof(at_ciurc), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_ciurc[] = "\nAT+CIURC=0\n";
+    // if (!gsm_modem_cmd_base(at_ciurc, sizeof(at_ciurc), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // AT+CNMI=0,0,0,0,0  # Disable SMS notifications
     // OK
-    char at_cnmi[] = "\nAT+CNMI=0,0,0,0,0\n";
-    if (!gsm_modem_cmd_base(at_cnmi, sizeof(at_cnmi), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_cnmi[] = "\nAT+CNMI=0,0,0,0,0\n";
+    // if (!gsm_modem_cmd_base(at_cnmi, sizeof(at_cnmi), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // AT+CLIP=0    # Disable incoming call indications
     // OK
-    char at_clip[] = "\nAT+CLIP=0\n";
-    if (!gsm_modem_cmd_base(at_clip, sizeof(at_clip), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_clip[] = "\nAT+CLIP=0\n";
+    // if (!gsm_modem_cmd_base(at_clip, sizeof(at_clip), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // AT+COLP=0    # Disable connected line identification
     // OK
-    char at_colp[] = "\rAT+COLP=0\n";
-    if (!gsm_modem_cmd_base(at_colp, sizeof(at_colp), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_colp[] = "\rAT+COLP=0\n";
+    // if (!gsm_modem_cmd_base(at_colp, sizeof(at_colp), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // AT+CREG=0    # Disable unsolicited network registration information
     // OK
-    char at_creg[] = "\nAT+CREG=0\n";
-    if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_creg[] = "\nAT+CREG=0\n";
+    // if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg), "OK", 100)) {
+    //     goto DONE;
+    // }
 
-    // AT+CGREG=0   # Disable unsolicited GPRS network status
-    // OK
-    char at_cgreg[] = "\nAT+CGREG=0\n";
-    if (!gsm_modem_cmd_base(at_cgreg, sizeof(at_cgreg), "OK", 100)) {
-        goto DONE;
-    }
+    // // AT+CGREG=0   # Disable unsolicited GPRS network status
+    // // OK
+    // char at_cgreg[] = "\nAT+CGREG=0\n";
+    // if (!gsm_modem_cmd_base(at_cgreg, sizeof(at_cgreg), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     // # AT+CLTS=1  Enable the network time synchronization
     // "OK"
-    char at_clts[] = "\nAT+CLTS=1\n";
-    if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 100)) {
-        goto DONE;
-    }
+    // char at_clts[] = "\nAT+CLTS=1\n";
+    // if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 100)) {
+    //     goto DONE;
+    // }
 
     res = true;
 DONE:
@@ -177,7 +186,9 @@ DONE:
 }
 
 bool gsm_modem_wakeup(void) {
-    bool result = false;
+    bool res = false;
+
+    // Optional, receiving SMS's possible
     // To wake up the module from sleep mode, pull the DTR pin low.
     // This action will wake up the module and bring it back to active mode.
     // AT            To confirm wheather module woken up
@@ -192,13 +203,25 @@ bool gsm_modem_wakeup(void) {
         goto DONE;
     }
 
-    // wait for +cpin: ready
-    return (result);
+    int64_t start_ts = k_uptime_get();
+    char read_line[64];
+    do {
+        if (uart_gsm_read_line(read_line, sizeof(read_line), 1000)) {
+            if (!strstr(read_line, "*PSUTTZ")) {
+                res = true;
+                break;
+            }
+        }
+    } while (start_ts + INT64_C(8000) < k_uptime_get());
+
+DONE:
+    return (res);
 }
 
 bool gsm_modem_sleep(void) {
-    bool result = false;
+    bool res = false;
 
+    // Optional, receiving SMS's possible
     // AT+CSCLK=1   Enter into sleep mode, wake up with dtr
     // The Data Terminal Ready (DTR) pin must be pulled high for the module to enter sleep mode.
     // Configure the DTR pin to high after issuing the AT+CSCLK=1 command.
@@ -214,7 +237,7 @@ bool gsm_modem_sleep(void) {
 
     res = true;
 DONE:
-    return (result);
+    return (res);
 }
 
 bool gsm_modem_net_setup(void) {
@@ -316,9 +339,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';     // Protocol name
-    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;    // Connect flags (Clean session)
+    send_data[7] = 'T';    // Protocol name
+    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;   // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;

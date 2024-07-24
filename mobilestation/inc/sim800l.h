@@ -3,6 +3,14 @@
  * ---------------------------------------------------------------------------
  *  Name: sim800l.h
  * --------------------------------------------------------------------------*/
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+void gsm_modem_init(void);
+bool gsm_modem_reset(void);
+bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout);
+bool gsm_modem_config(void);
 
 /* ---------------------------------------------------------------------------
  * end of file
