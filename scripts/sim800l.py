@@ -64,6 +64,8 @@ import time
 # 08:03:30:619 -> 
 # 08:03:30:619 -> CLOSED
 
+# To step down from 3.3V to 2.8V, you can use a resistor divider with R1=10kΩ and R2=56kΩ
+
 def send_at_command(ser, command, expected_response, timeout=2):
     ser.write((command + '\r').encode())
     time.sleep(timeout)

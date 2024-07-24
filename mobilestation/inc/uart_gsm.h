@@ -30,7 +30,7 @@ void uart_gsm_send(uint8_t *tx_data, size_t tx_len);
  * @return true Got given bytes number
  * @return false Timeout occured
  */
-bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout);
+bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout);
 
 /**
  * @brief uart_gsm_read_line
@@ -41,7 +41,7 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int64_t timeout);
  * @return true Got line properly
  * @return false Timeout occured
  */
-bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout);
+bool uart_gsm_read_line(char *rx_line, size_t max_len, int32_t timeout);
 
 /**
  * @brief uart_gsm_rx_clear

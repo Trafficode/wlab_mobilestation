@@ -23,7 +23,7 @@ void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
     uart_tx(UartDev, tx_data, tx_len, 0);
 }
 
-bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int32_t timeout) {
+bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
     uint8_t rchar = 0;
     size_t read_len = 0;
     bool result = false;
@@ -37,7 +37,7 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t rx_len, int32_t timeout) {
 
         rx_data[read_len++] = rchar;
 
-        if (read_len == rx_len) {
+        if (read_len == exp_len) {
             result = true;
             break;
         }
@@ -53,13 +53,14 @@ void uart_gsm_rx_clear(void) {
     }
 }
 
-bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
+bool uart_gsm_read_line(char *rx_line, size_t max_len, int32_t timeout) {
     uint8_t rchar = 0;
     size_t read_len = 0;
     bool result = false;
     int64_t start_ts = k_uptime_get();
 
-    while (start_ts + timeout < k_uptime_get()) {
+    max_len--;   // \0 has to be added at the end of line to make it as string
+    while (start_ts + (int64_t)timeout < k_uptime_get()) {
         if (0 != uart_poll_in(UartDev, &rchar)) {
             k_sleep(K_MSEC(1));
             continue;
@@ -72,13 +73,16 @@ bool uart_gsm_read_line(char *rx_line, size_t *rx_len, int64_t timeout) {
 
         if (rchar == '\n' || rchar == '\r') {
             // End of line got
-            *rx_len = read_len;
+            rx_line[read_len] = '\0';   // append end of string
             result = true;
             break;
         }
 
         if (rchar >= ' ' || rchar <= '~') {
             rx_line[read_len++] = rchar;
+            if (read_len == max_len) {
+                break;
+            }
         }
     }
 
