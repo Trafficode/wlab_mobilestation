@@ -15,7 +15,8 @@
 
 LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
-// need to verify if it is possible to pubslish in the same package as connect is send
+// status led
+// reset button
 
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
@@ -26,7 +27,7 @@ int main(void) {
             SYS_KERNEL_VER_PATCHLEVEL(ver));
 
     nvs_data_init();
-    uart_gsm_init();
+
     wlab_init();
 
     for (;;) {

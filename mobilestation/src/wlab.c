@@ -61,7 +61,7 @@ void wlab_init(void) {
     }
 
     gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
-
+    gsm_modem_init();
     // while (!wlab_timestamp_sync()) {
     //     LOG_ERR("Failed to sync timestamp...");
     //     k_sleep(K_MSEC(2000));

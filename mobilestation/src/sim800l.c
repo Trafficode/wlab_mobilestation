@@ -33,6 +33,7 @@ void gsm_modem_init(void) {
     }
 
     gpio_pin_configure_dt(&GsmResetPin, GPIO_OUTPUT_HIGH);
+    uart_gsm_init();
 }
 
 bool gsm_modem_reset(void) {
@@ -82,24 +83,25 @@ DONE:
 static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
                                int32_t timeout) {
     bool res = false;
-    int64_t start_ts = k_uptime_get();
     char read_line[64];
 
     uart_gsm_rx_clear();
     uart_gsm_send(data, len);
     LOG_INF("> %s", data + 1);
+
+    int64_t start_ts = k_uptime_get();
     int64_t rl_timeout = (int64_t)timeout;
     do {
         if (uart_gsm_read_line(read_line, sizeof(read_line), timeout)) {
-            LOG_INF("< %s", read_line);
-            if (0 == strstr(read_line, expected)) {
+            LOG_INF("< %s/%s", read_line, expected);
+            if (NULL != strstr(read_line, expected)) {
                 res = true;
                 break;
-            } else if (0 == strstr(read_line, "ERROR")) {
+            } else if (NULL != strstr(read_line, "ERROR")) {
                 break;
-            } else if (0 == strstr(read_line, "SEND FAIL")) {
+            } else if (NULL != strstr(read_line, "SEND FAIL")) {
                 break;
-            } else if (0 == strstr(read_line, "CLOSED")) {
+            } else if (NULL != strstr(read_line, "CLOSED")) {
                 break;
             } else {
                 // TODO Test!
@@ -109,7 +111,7 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
                 // }
             }
         }
-    } while (start_ts + rl_timeout > k_uptime_get());
+    } while ((start_ts + rl_timeout) > k_uptime_get());
 
     return (res);
 }
@@ -120,7 +122,7 @@ bool gsm_modem_config(void) {
     // # AT                  Echo OFF
     // "OK"
     char at[] = "\nAT\n";
-    if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 100)) {
+    if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 1000)) {
         goto DONE;
     }
 
@@ -339,9 +341,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';    // Protocol name
-    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;   // Connect flags (Clean session)
+    send_data[7] = 'T';     // Protocol name
+    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;    // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;
