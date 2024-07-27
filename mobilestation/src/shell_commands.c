@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/reboot.h>
 #include <zephyr/sys/util.h>
 
 #include "nvs_data.h"
@@ -157,6 +158,19 @@ static int cmd_pconfig(const struct shell *shell, size_t argc, char *argv[]) {
     // shell_fprintf(shell, SHELL_NORMAL, "wlab_name: <%s>\n", wlab_name);
     return (0);
 }
+
+// reboot
+static int cmd_reboot(const struct shell *shell, size_t argc, char *argv[]) {
+    // Reboot the system
+    sys_reboot(SYS_REBOOT_COLD);
+    return (0);
+}
+
+SHELL_CMD_REGISTER(reboot, NULL,
+                   "Restart uC                  \n"
+                   "Usage:                      \n"
+                   "$ reboot                     ",
+                   cmd_reboot);
 
 SHELL_CMD_REGISTER(pconfig, NULL,
                    "Print all custom user config\n"

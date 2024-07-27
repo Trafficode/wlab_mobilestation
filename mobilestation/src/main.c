@@ -32,8 +32,8 @@ int main(void) {
 
     for (;;) {
         LOG_INF("Main loop, systick = %" PRIi64, k_uptime_get());
+        k_sleep(K_MSEC(10000));
         wlab_proc();
-        k_sleep(K_MSEC(2000));
     }
     return 0;
 }

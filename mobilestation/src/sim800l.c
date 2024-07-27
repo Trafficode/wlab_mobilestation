@@ -36,18 +36,36 @@ void gsm_modem_init(void) {
     uart_gsm_init();
 }
 
-bool gsm_modem_reset(void) {
+bool gsm_modem_test(void) {
+    int try = 0;
     bool res = false;
 
-    // # AT&F                  Factory settings
-    // "OK"
-    char at_f[] = "\rAT&F\r";
-    if (!gsm_modem_cmd_base(at_f, sizeof(at_f), "SEND_OK", 1000)) {
+    LOG_INF("gsm_modem_test start");
+    for (try = 0; try < 24; try++) {
+        char at[] = "\nAT\n";
+        if (gsm_modem_cmd_base(at, sizeof(at), "OK", 1000)) {
+            res = true;
+            break;
+        }
+    }
+
+    LOG_INF("... gsm_modem_test done res %u", res);
+    return (res);
+}
+
+bool gsm_modem_reset(void) {
+    bool res = false;
+    LOG_INF("gsm_modem_reset start");
+    // AT+CFUN=1,1  Restart module
+    // OK
+    char at_cfun11[] = "\nAT+CFUN=1,1\n";
+    if (!gsm_modem_cmd_base(at_cfun11, sizeof(at_cfun11), "OK", 1000)) {
         goto DONE;
     }
 
     res = true;
 DONE:
+    LOG_INF("... gsm_modem_reset done res %u", res);
     return (res);
 }
 
@@ -61,17 +79,21 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout) {
 
     uint8_t read_buffer[4];
     char *at_cipsend = "\nAT+CIPSEND\n";
+    LOG_INF("%s", at_cipsend + 1);
     uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
-    if (!uart_gsm_read_bytes(read_buffer, 3, 1000)) {
+    if (!uart_gsm_read_bytes(read_buffer, 3, 4000)) {
+        LOG_ERR("Read 3 bytes failed");
         goto DONE;
     } else {
         uint8_t expected[] = {'\n', '>', ' '};
         if (0 != memcmp(read_buffer, expected, 3)) {
+            LOG_ERR("Bad 3 bytes");
             goto DONE;
         }
     }
 
     if (!gsm_modem_cmd_base(data, len, "SEND_OK", timeout)) {
+        LOG_ERR("No send ok...");
         goto DONE;
     }
 
@@ -87,7 +109,7 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 
     uart_gsm_rx_clear();
     uart_gsm_send(data, len);
-    LOG_INF("> %s", data + 1);
+    // LOG_INF("> %s", data + 1);
 
     int64_t start_ts = k_uptime_get();
     int64_t rl_timeout = (int64_t)timeout;
@@ -119,6 +141,8 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 bool gsm_modem_config(void) {
     bool res = false;
 
+    LOG_INF("gsm_modem_config start");
+
     // # AT                  Echo OFF
     // "OK"
     char at[] = "\nAT\n";
@@ -126,12 +150,19 @@ bool gsm_modem_config(void) {
         goto DONE;
     }
 
-    // // # ATE0                  Echo OFF
+    // // # AT&F                  Factory settings
     // // "OK"
-    // char at_e0[] = "\nATE0\n";
-    // if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0), "OK", 100)) {
+    // char at_f[] = "\rAT&F\r";
+    // if (!gsm_modem_cmd_base(at_f, sizeof(at_f), "OK", 1000)) {
     //     goto DONE;
     // }
+
+    // # ATE0                  Echo OFF
+    // "OK"
+    char at_e0[] = "\nATE0\n";
+    if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0), "OK", 100)) {
+        goto DONE;
+    }
 
     // AT+CIURC=0   # Disable "Call Ready" message
     // OK
@@ -175,58 +206,45 @@ bool gsm_modem_config(void) {
     //     goto DONE;
     // }
 
-    // # AT+CLTS=1  Enable the network time synchronization
-    // "OK"
-    // char at_clts[] = "\nAT+CLTS=1\n";
-    // if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 100)) {
-    //     goto DONE;
-    // }
+    // AT+CLTS=1  Enable the network time synchronization
+    // OK
+    char at_clts[] = "\nAT+CLTS=1\n";
+    if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 100)) {
+        goto DONE;
+    }
+
+    // AT&W  Save configuration
+    // OK
+    char at_w[] = "\nAT&W\n";
+    if (!gsm_modem_cmd_base(at_w, sizeof(at_w), "OK", 100)) {
+        goto DONE;
+    }
 
     res = true;
 DONE:
+    LOG_INF("... gsm_modem_config done res %u", res);
     return (res);
 }
 
 bool gsm_modem_wakeup(void) {
     bool res = false;
 
-    // Optional, receiving SMS's possible
-    // To wake up the module from sleep mode, pull the DTR pin low.
-    // This action will wake up the module and bring it back to active mode.
-    // AT            To confirm wheather module woken up
+    // AT+CFUN=0    Minimum functionality. Lowest power consumption, RF disabled, 0.796mA.
+    // AT+CFUN=1    Full functionality (default).
+    // AT+CFUN=4    Flight mode (disable RF function).
     // OK
-    // char at[] = "\nAT\n";
-    // if (!gsm_modem_cmd_base(at, sizeof(at), "OK", 2000)) {
-    //     goto DONE;
-    // }
-
     char at_wakeup[] = "\nAT+CFUN=1\n";
-    if (!gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup), "OK", 1000)) {
+    if (!gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup), "OK", 8000)) {
         goto DONE;
     }
 
-    int64_t start_ts = k_uptime_get();
-    char read_line[64];
-    do {
-        if (uart_gsm_read_line(read_line, sizeof(read_line), 1000)) {
-            if (!strstr(read_line, "*PSUTTZ")) {
-                res = true;
-                break;
-            }
-        }
-    } while (start_ts + INT64_C(8000) < k_uptime_get());
-
+    res = true;
 DONE:
     return (res);
 }
 
 bool gsm_modem_sleep(void) {
     bool res = false;
-
-    // Optional, receiving SMS's possible
-    // AT+CSCLK=1   Enter into sleep mode, wake up with dtr
-    // The Data Terminal Ready (DTR) pin must be pulled high for the module to enter sleep mode.
-    // Configure the DTR pin to high after issuing the AT+CSCLK=1 command.
 
     // AT+CFUN=0    Minimum functionality. Lowest power consumption, RF disabled, 0.796mA.
     // AT+CFUN=1    Full functionality (default).
@@ -245,17 +263,28 @@ DONE:
 bool gsm_modem_net_setup(void) {
     bool res = false;
 
-    // # AT+CGATT=1            Attach to GPRS service
-    // OK
-    char at_cgatt[] = "\nAT+CGATT=1\n";
-    if (!gsm_modem_cmd_base(at_cgatt, sizeof(at_cgatt), "OK", 100)) {
+    LOG_INF("gsm_modem_net_setup start");
+    int try = 0;
+
+    for (try = 0; try < 24; try++) {
+        // # AT+CGATT=1            Attach to GPRS service
+        // OK
+        char at_cgatt[] = "\nAT+CGATT=1\n";
+        if (!gsm_modem_cmd_base(at_cgatt, sizeof(at_cgatt), "OK", 1000)) {
+            k_sleep(K_MSEC(1000));
+        } else {
+            break;   // success
+        }
+    }
+
+    if (24 == try) {
         goto DONE;
     }
 
     // # AT+CIPSHUT            Reset IP session
     // SHUT OK
     char at_cipshut[] = "\nAT+CIPSHUT\n";
-    if (!gsm_modem_cmd_base(at_cipshut, sizeof(at_cipshut), "SHUT OK", 100)) {
+    if (!gsm_modem_cmd_base(at_cipshut, sizeof(at_cipshut), "SHUT OK", 2000)) {
         goto DONE;
     }
 
@@ -296,31 +325,40 @@ bool gsm_modem_net_setup(void) {
     }
 
     // # AT+CIFSR              Get IP address (expecting a non-empty response)
+    // OK
     // 10.0.0.0
     char at_cifsr[] = "\nAT+CIFSR\n";
-    char read_line[20];
+    char read_line[32];
     uart_gsm_rx_clear();
     uart_gsm_send(at_cifsr, sizeof(at_cifsr));
-    if (uart_gsm_read_line(read_line, sizeof(read_line), 100)) {
-        uint32_t addr3, addr2, addr1, addr0;
-        int scan_res =
-            sscanf(read_line, "%u.%u.%u.%u", &addr3, &addr2, &addr1, &addr0);
-        if (4 != scan_res) {
-            goto DONE;
-        } else {
-            LOG_INF("Ip address: %u.%u.%u.%u", addr3, addr2, addr1, addr0);
+    int64_t start_ts = k_uptime_get();
+    LOG_INF("> %s", at_cifsr + 1);
+    do {
+        if (uart_gsm_read_line(read_line, sizeof(read_line), 100)) {
+            LOG_INF("< %s", read_line);
+            uint32_t addr3, addr2, addr1, addr0;
+            int scan_res = sscanf(read_line, "%u.%u.%u.%u", &addr3, &addr2,
+                                  &addr1, &addr0);
+            if (4 != scan_res) {   // check wheather whole ip scanned properly
+                continue;
+            } else {
+                LOG_INF("Ip address: %u.%u.%u.%u", addr3, addr2, addr1, addr0);
+                break;
+            }
         }
-    } else {
-        goto DONE;
-    }
+
+        if ((start_ts + 4000) > k_uptime_get()) {
+            goto DONE;
+        }
+    } while (true);
 
     res = true;
 DONE:
+    LOG_INF("... gsm_modem_net_setup done res %u", res);
     return (res);
 }
 
-bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
-                            int64_t timeout) {
+bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     bool res = false;
 
     // AT+CIPSTART="TCP","194.42.111.14","1883"
@@ -331,6 +369,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
     send_data_len = sprintf(send_data, "\nAT+CIPSTART=\"TCP\",\"%s\",\"%u\"\n",
                             domain, port);
     if (!gsm_modem_cmd_base(send_data, send_data_len, "CONNECT OK", 4000)) {
+        LOG_ERR("Cipstart failed");
         goto DONE;
     }
 
@@ -341,20 +380,22 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';     // Protocol name
-    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;    // Connect flags (Clean session)
+    send_data[7] = 'T';    // Protocol name
+    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;   // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;
     send_data[13] = 0x00;   // No client id
     send_data[14] = 0x1A;   // End of data to send
     if (!gsm_modem_cipsend(send_data, 15, 4000)) {
+        LOG_ERR("Cipsend failed");
         goto DONE;
     }
 
     uint8_t read_buffer[6];
     if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
+        LOG_ERR("Read broker answer failed");
         goto DONE;
     } else {
         // server answers: 0a 53 45 4e 44 20 4f 4b 0a 20 02 00 00(SEND OK, 20 02 00 00)
@@ -365,6 +406,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port,
         // 00 - connect return code, 0 - success
         const uint8_t expected[] = {0x20, 0x02, 0x00, 0x00};
         if (0 != memcmp(read_buffer, expected, 4)) {
+            LOG_ERR("Broker answer bad");
             goto DONE;
         }
     }
@@ -419,12 +461,20 @@ bool gsm_modem_get_timestamp(int64_t *ts) {
 
     // AT+CCLK?
     // +CCLK : "21/07/17,12:34:56+00"
-    char at_clk[] = "AT+CCLK?";
+    // +CCLK: "04/01/01,00:05:55+08" in case of failed
+    char at_clk[] = "\nAT+CCLK?\n";
     uart_gsm_rx_clear();
     uart_gsm_send(at_clk, sizeof(at_clk));
+    LOG_INF("> %s", at_clk + 1);
     if (uart_gsm_read_line(read_line, sizeof(read_line), 1000)) {
-        if (0 != strstr(read_line, "+CCLK")) {
+        LOG_INF("< %s", read_line);
+        if (NULL == strstr(read_line, "+CCLK")) {
             LOG_ERR("Failed to get time");
+            goto DONE;
+        }
+
+        if (NULL != strstr(read_line, "04/01/01")) {
+            LOG_ERR("Time not synced properly");
             goto DONE;
         }
 
@@ -445,9 +495,11 @@ bool gsm_modem_get_timestamp(int64_t *ts) {
                 LOG_DBG("Epoch time: %lld\n", epoch_time);
                 *ts = epoch_time;
             } else {
-                LOG_ERR("Failed to convert to epoch time\n");
+                LOG_ERR("Failed to convert to epoch time");
                 goto DONE;
             }
+        } else {
+            LOG_ERR("Failed to scan timestamp");
         }
     }
 

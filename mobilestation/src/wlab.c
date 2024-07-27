@@ -34,6 +34,7 @@ static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
 static int64_t wlab_timestamp_get(void);
 static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
+static bool wlab_publish(void);
 
 LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
 
@@ -62,29 +63,117 @@ void wlab_init(void) {
 
     gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
     gsm_modem_init();
-    // while (!wlab_timestamp_sync()) {
-    //     LOG_ERR("Failed to sync timestamp...");
-    //     k_sleep(K_MSEC(2000));
-    // }
 
-    // int64_t ts = wlab_timestamp_get();
-    // // Make sure that sample timestamp is exactly the second when the sample
-    // // should be. TS will be a bit bigger so substract this difference
-    // SampleTsSec = ts - (ts % PublishPeriodSec);
-    // wlab_buffer_init(&TempBuffer, SampleTsSec);
-    // wlab_buffer_init(&HumBuffer, SampleTsSec);
+    while (true) {
+        if (!gsm_modem_test()) {
+            LOG_ERR("No communication with modem");
+            continue;
+        }
+
+        if (!gsm_modem_config()) {
+            LOG_ERR("Configure modem failed");
+            continue;
+        }
+
+        if (!gsm_modem_reset()) {
+            LOG_ERR("Reset modem failed");
+            continue;
+        }
+
+        if (!gsm_modem_test()) {
+            LOG_ERR("No communication with modem");
+            continue;
+        }
+
+        if (!gsm_modem_net_setup()) {
+            LOG_ERR("Network up failed");
+            continue;
+        }
+
+        if (!gsm_modem_net_setup()) {
+            LOG_ERR("Network up failed");
+            continue;
+        }
+
+        if (!wlab_timestamp_sync()) {
+            LOG_ERR("Time sync failed");
+            continue;
+        }
+
+        // all done sucessfully, put modem into sleep mode
+        gsm_modem_sleep();
+        break;
+    }
+
+    int64_t ts = wlab_timestamp_get();
+    // Make sure that sample timestamp is exactly the second when the sample
+    // should be. TS will be a bit bigger so substract this difference
+    SampleTsSec = ts - (ts % PublishPeriodSec);
+    wlab_buffer_init(&TempBuffer, SampleTsSec);
+    wlab_buffer_init(&HumBuffer, SampleTsSec);
+
+    k_sleep(K_MSEC(10000));
+    wlab_publish();
+}
+
+static bool wlab_publish(void) {
+    bool res = 0;
+
+    if (!gsm_modem_wakeup()) {
+        LOG_ERR("Failed to wakeup modem");
+        goto DONE;
+    }
+
+    if (!gsm_modem_test()) {
+        LOG_ERR("No communication with modem");
+        goto DONE;
+    }
 
     if (!gsm_modem_config()) {
-        LOG_ERR("Configure GSM modem failed");
+        LOG_ERR("Configure modem failed");
+        goto DONE;
     }
+
+    if (!gsm_modem_net_setup()) {
+        LOG_ERR("Network up failed");
+        goto DONE;
+    }
+
+    if (!gsm_modem_net_setup()) {
+        LOG_ERR("Network up failed");
+        goto DONE;
+    }
+
+    if (!wlab_timestamp_sync()) {
+        LOG_ERR("Time sync failed");
+        goto DONE;
+    }
+
+    if (!gsm_modem_mqtt_connect("194.42.111.14", 1883)) {
+        LOG_ERR("Connect to MQTT failed");
+        goto DONE;
+    }
+
+    char pub_test[] = "PUBLISH TEST";
+    if (!gsm_modem_mqtt_publish("wlab/test", (uint8_t *)pub_test,
+                                sizeof(pub_test))) {
+        LOG_ERR("Publish to MQTT failed");
+    }
+
+    gsm_modem_mqtt_close();
+    res = true;
+DONE:
+    gsm_modem_sleep();   // shuld it be repeated and repeated?
+    return (res);
 }
 
 void wlab_proc(void) {
-    if (!gsm_modem_config()) {
-        LOG_ERR("Configure GSM modem failed");
-    } else {
-        LOG_INF("GSM communication OOK!");
-    }
+    // if (!gsm_modem_config()) {
+    //     LOG_ERR("Configure GSM modem failed");
+    // } else {
+    //     LOG_INF("GSM communication OOK!");
+    // }
+
     // struct sensor_value temp, hum;
     // int16_t i_temp, i_humidity;
 
@@ -157,18 +246,14 @@ static int64_t wlab_timestamp_get(void) {
 }
 
 static bool wlab_timestamp_sync(void) {
-    bool rc = false;
-    // ret = sntp_simple("0.pl.pool.ntp.org", 4000, &sntp_time);
-    // if (0 == ret) {
-    //     SntpSyncSec = (int64_t)sntp_time.seconds;
-    //     UptimeSyncMs = k_uptime_get();
-    //     LOG_INF("Acquire SNTP success");
-    // } else {
-    //     LOG_ERR("Failed to acquire SNTP, code %d", ret);
-    // }
-    UpdateTsSec = 0;
-    UpdateTsUptimeSec = k_uptime_get() / 1000;
-    return (rc);
+    bool res = false;
+
+    if (gsm_modem_get_timestamp(&UpdateTsSec)) {
+        UpdateTsUptimeSec = k_uptime_get() / 1000;
+        res = true;
+    }
+
+    return (res);
 }
 
 static void wlab_timestamp_check(void) {
