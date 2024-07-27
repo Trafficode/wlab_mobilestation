@@ -35,19 +35,16 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
     bool result = false;
     int64_t start_ts = k_uptime_get();
 
-    while ((start_ts + (int64_t)timeout) < k_uptime_get()) {
-        if (0 != uart_poll_in(UartDev, &rchar)) {
-            k_sleep(K_MSEC(1));
-            continue;
+    do {
+        if (0 == uart_poll_in(UartDev, &rchar)) {
+            LOG_INF("c 0x%u", rchar);
+            rx_data[read_len++] = rchar;
+            if (read_len == exp_len) {
+                result = true;
+                break;
+            }
         }
-
-        rx_data[read_len++] = rchar;
-
-        if (read_len == exp_len) {
-            result = true;
-            break;
-        }
-    }
+    } while ((start_ts + (int64_t)timeout) > k_uptime_get());
 
     return (result);
 }
