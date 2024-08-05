@@ -99,7 +99,7 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout) {
     }
 
     if (!gsm_modem_cmd_base(data, len, "SEND OK", timeout)) {
-        LOG_ERR("No send ok...");
+        LOG_ERR("No SEND OK answer");
         goto DONE;
     }
 
@@ -215,14 +215,21 @@ bool gsm_modem_config(void) {
     // AT+CLTS=1  Enable the network time synchronization
     // OK
     char at_clts[] = "\nAT+CLTS=1\n";
-    if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 100)) {
+    if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts), "OK", 1000)) {
+        goto DONE;
+    }
+
+    // AT+CNETLIGHT=0  Disable blinking led
+    // OK
+    char at_cnetlight[] = "\nAT+CNETLIGHT=0\n";
+    if (!gsm_modem_cmd_base(at_cnetlight, sizeof(at_cnetlight), "OK", 1000)) {
         goto DONE;
     }
 
     // AT&W  Save configuration
     // OK
     char at_w[] = "\nAT&W\n";
-    if (!gsm_modem_cmd_base(at_w, sizeof(at_w), "OK", 100)) {
+    if (!gsm_modem_cmd_base(at_w, sizeof(at_w), "OK", 1000)) {
         goto DONE;
     }
 
@@ -433,6 +440,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     bool res = false;
     uint8_t publish_buffer[128];
     size_t topic_len = strlen(topic);
+
     // 1B: PacketType 1B: RemainingLen + 2B: TopicLen + Topic + Data
     size_t total_len = 1 + 1 + 2 + strlen(topic) + len;
 
@@ -444,12 +452,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     memcpy(publish_buffer + 4 + topic_len, data, len);
     publish_buffer[total_len++] = 0x1A;   // End
 
-    LOG_INF("Publish len %d", total_len);
-    for (int idx = 0; idx < total_len; idx++) {
-        printk("pubd[%d]: %02X\n", idx, publish_buffer[idx]);
-    }
-
-    if (!gsm_modem_cipsend(publish_buffer, total_len, 4000)) {
+    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000)) {
         goto DONE;
     }
 

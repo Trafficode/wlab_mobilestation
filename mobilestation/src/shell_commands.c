@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/sys/util.h>
 
@@ -34,6 +35,7 @@ static int cmd_mqtt_config(const struct shell *shell, size_t argc,
 }
 
 // (set custom device id)             $ deviceid <str_hex_id>
+// deviceid 1100203040AB - in this way deviceid will be printed in application
 static int cmd_deviceid(const struct shell *shell, size_t argc, char *argv[]) {
     uint64_t device_id = 0;
 
@@ -44,6 +46,7 @@ static int cmd_deviceid(const struct shell *shell, size_t argc, char *argv[]) {
 
     if (2 == argc) {
         device_id = strtoull(argv[1], NULL, 16);
+        device_id = sys_cpu_to_le64(device_id);
     }
 
     if (0 == nvs_data_wlab_device_id_set(&device_id)) {

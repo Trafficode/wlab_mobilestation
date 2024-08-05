@@ -47,6 +47,13 @@ struct __attribute__((packed)) wlab_db_bin {
     int16_t battery_voltage;
 };
 
+// {'version': 1, 'id': '01:00:00:30:20:10', 'ts': 1722882000, 'temp_act': 227, 'temp_avg': 225, 'temp_max': 227, 'temp_min': 222,
+// 'temp_max_ts_offset': -223, 'temp_min_ts_offset': 6096, 'humidity_act': 77, 'humidity_avg': 81, 'humidity_max': 92, 'humidity_min': 77,
+// 'humidity_max_ts_offset': 0, 'humidity_min_ts_offset': 6276, 'battery_voltage': 0}
+// {'UID': '01:00:00:30:20:10', 'TS': 1722882000, 'SERIE': {'Temperature':
+// {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888096, 'i_max_ts': 1722881777},
+// 'Humidity': {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888276, 'i_max_ts': 1722882000}}}
+
 static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
 
@@ -212,7 +219,7 @@ void wlab_proc(void) {
 
         i_temp = temp.val1 * 10 + temp.val2 / 100000;
         i_humidity = hum.val1 * 10 + hum.val2 / 100000;
-        LOG_INF("SHT3XD: %d Cel ; %d %%RH\n", i_temp, i_humidity);
+        LOG_INF("SHT3XD: %d Cel ; %d %%RH", i_temp, i_humidity);
     } else {
         LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
     }
@@ -253,10 +260,10 @@ static void wlab_bin_package_prepare(struct wlab_db_bin *sample) {
     memcpy(sample->id, (uint8_t *)&DevieId, 6);
     sample->battery_voltage = 0;
 
-    sample->humidity_act = (uint8_t)HumBuffer.act;
-    sample->humidity_avg = (uint8_t)(HumBuffer.buff / HumBuffer.cnt);
-    sample->humidity_max = (uint8_t)HumBuffer.max;
-    sample->humidity_min = (uint8_t)HumBuffer.min;
+    sample->humidity_act = (uint8_t)(HumBuffer.act / 10);
+    sample->humidity_avg = (uint8_t)((HumBuffer.buff / HumBuffer.cnt) / 10);
+    sample->humidity_max = (uint8_t)(HumBuffer.max / 10);
+    sample->humidity_min = (uint8_t)(HumBuffer.min / 10);
     sample->humidity_min_ts_offset = HumBuffer.min_ts_offset;
     sample->humidity_max_ts_offset = HumBuffer.max_ts_offset;
 
@@ -283,12 +290,12 @@ static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts) {
     if (val > buffer->max) {
         buffer->max = val;
-        buffer->max_ts_offset = buffer->sample_ts - ts;
+        buffer->max_ts_offset = ts - buffer->sample_ts;
     }
 
     if (val < buffer->min) {
         buffer->min = val;
-        buffer->min_ts_offset = ts - (ts % INT64_C(60));
+        buffer->min_ts_offset = ts - buffer->sample_ts;
     }
 
     buffer->act = val;

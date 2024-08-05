@@ -51,7 +51,6 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
 
     do {
         if (0 == uart_poll_in(UartDev, &rchar)) {
-            LOG_INF("c %u", rchar);
             rx_data[read_len++] = rchar;
             if (read_len == exp_len) {
                 res = true;
