@@ -63,7 +63,7 @@ void nvs_data_mqtt_config_get(struct mqtt_config *mqttconf) {
 
     int ret = nvs_read(&Fs, NVS_ID_MQTT_CONFIG, mqttconf, mqtt_config_len);
     if (ret <= 0) {
-        LOG_WRN("No net_settings found, clear...");
+        LOG_WRN("No mqtt config found, clear...");
         memset(mqttconf, 0x00, mqtt_config_len);
         if (mqtt_config_len ==
             nvs_write(&Fs, NVS_ID_MQTT_CONFIG, mqttconf, mqtt_config_len)) {
@@ -95,7 +95,7 @@ void nvs_data_wlab_device_id_get(uint64_t *device_id) {
     int ret =
         nvs_read(&Fs, NVS_ID_WLAB_DEVICE_ID, device_id, wlab_device_id_len);
     if (ret <= 0) {
-        LOG_WRN("No wlab custom device found, clear...");
+        LOG_WRN("No device id found, clear...");
         memset(device_id, 0x00, wlab_device_id_len);
         if (wlab_device_id_len == nvs_write(&Fs, NVS_ID_WLAB_DEVICE_ID,
                                             device_id, wlab_device_id_len)) {

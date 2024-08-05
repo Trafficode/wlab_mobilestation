@@ -147,12 +147,14 @@ void wlab_init(void) {
 static bool wlab_publish(void) {
     bool res = false;
     struct wlab_db_bin sample_bin = {};
-    wlab_bin_package_prepare(&sample_bin);
 
-    if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port)) {
-        LOG_ERR("Mqtt not configured");
+    if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
+        (0 == DevieId)) {
+        LOG_ERR("Device not configured");
         goto DONE;
     }
+
+    wlab_bin_package_prepare(&sample_bin);
 
     if (!gsm_modem_wakeup()) {
         LOG_ERR("Failed to wakeup modem");
@@ -219,7 +221,7 @@ void wlab_proc(void) {
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
 
-        if ((DevieId != 0) && (TempBuffer.cnt > 0)) {
+        if (TempBuffer.cnt > 0) {
             wlab_publish();
         } else {
             // Device not configured or sensor problem

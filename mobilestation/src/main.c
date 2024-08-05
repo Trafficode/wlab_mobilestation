@@ -18,6 +18,8 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // status led
 // reset button
 // rebooting when net_setup failed and try again
+// document sim800l.h
+// one sample timestamp, cnt for hum and dtemp
 
 int main(void) {
     uint32_t ver = sys_kernel_version_get();

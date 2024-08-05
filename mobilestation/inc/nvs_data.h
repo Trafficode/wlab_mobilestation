@@ -14,12 +14,10 @@
 #define NVS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(NVS_PARTITION)
 #define NVS_PARTITION_SIZE   FIXED_PARTITION_SIZE(NVS_PARTITION)
 
-#define NVS_ID_BOOT_COUNT        (1)
-#define NVS_ID_MQTT_CONFIG       (2)
-#define NVS_ID_WLAB_DEVICE_ID    (3)
-#define NVS_ID_WLAB_NAME         (4)
-#define NVS_ID_WLAB_GPS_POSITION (5)
-#define NVS_ID_WLAB_PUB_PERIOD   (6)
+#define NVS_ID_BOOT_COUNT      (1)
+#define NVS_ID_MQTT_CONFIG     (2)
+#define NVS_ID_WLAB_DEVICE_ID  (3)
+#define NVS_ID_WLAB_PUB_PERIOD (4)
 
 struct mqtt_config {
     char broker[CONFIG_BUFF_MAX_STRING_LEN];

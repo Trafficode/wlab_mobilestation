@@ -12,39 +12,29 @@
 #include "nvs_data.h"
 #include "uart_gsm.h"
 
-// $ mqttconf <hostname/ip> <port> <ping_period_secs> <max_ping_no_ans_mins>
+// $ mqttconf <hostname/ip> <port>
 static int cmd_mqtt_config(const struct shell *shell, size_t argc,
                            char *argv[]) {
-    // if (argc != 5) {
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tBad command usage!");
-    //     return (0);
-    // }
+    if (argc != 3) {
+        shell_fprintf(shell, SHELL_NORMAL, "\tBad command usage!");
+        return (0);
+    }
 
-    // struct mqtt_config mqttcfg = {0};
-    // strncpy(mqttcfg.mqtt_broker, argv[1], CONFIG_BUFF_MAX_STRING_LEN);
-    // mqttcfg.mqtt_port = strtoul(argv[2], NULL, 10);
-    // mqttcfg.mqtt_ping_period = strtoul(argv[3], NULL, 10);
-    // mqttcfg.mqtt_max_ping_no_answer = strtoul(argv[4], NULL, 10);
-    // if (0 == nvs_data_mqtt_config_set(&mqttcfg)) {
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tmqtt_broker: <%s>\n",
-    //                   mqttcfg.mqtt_broker);
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tmqtt_port: %u\n",
-    //                   mqttcfg.mqtt_port);
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tmqtt_ping_period: %u [secs]\n",
-    //                   mqttcfg.mqtt_ping_period);
-    //     shell_fprintf(shell, SHELL_NORMAL,
-    //                   "\tmqtt_max_ping_no_answer: %u [mins]\n",
-    //                   mqttcfg.mqtt_max_ping_no_answer);
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
-    // } else {
-    //     shell_fprintf(shell, SHELL_NORMAL, "\tFailed!\n");
-    // }
+    struct mqtt_config mqttcfg = {0};
+    strncpy(mqttcfg.broker, argv[1], CONFIG_BUFF_MAX_STRING_LEN);
+    mqttcfg.port = strtoul(argv[2], NULL, 10);
+    if (0 == nvs_data_mqtt_config_set(&mqttcfg)) {
+        shell_fprintf(shell, SHELL_NORMAL, "\tbroker: <%s>\n", mqttcfg.broker);
+        shell_fprintf(shell, SHELL_NORMAL, "\tport: %u\n", mqttcfg.port);
+        shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
+    } else {
+        shell_fprintf(shell, SHELL_NORMAL, "\tFailed!\n");
+    }
     return (0);
 }
 
-// (set custom wlab id)             $ wlabid <str_hex_id>
-// (restore taking id as mac addr)  $ wlabid
-static int cmd_wlab_id(const struct shell *shell, size_t argc, char *argv[]) {
+// (set custom device id)             $ deviceid <str_hex_id>
+static int cmd_deviceid(const struct shell *shell, size_t argc, char *argv[]) {
     uint64_t device_id = 0;
 
     if (argc != 2) {
@@ -66,7 +56,7 @@ static int cmd_wlab_id(const struct shell *shell, size_t argc, char *argv[]) {
     return (0);
 }
 
-// $ wlabpubp <publish_period_mins>
+// $ pubp <publish_period_mins>
 static int cmd_wlab_publish_period(const struct shell *shell, size_t argc,
                                    char *argv[]) {
     if (argc != 2) {
@@ -74,7 +64,7 @@ static int cmd_wlab_publish_period(const struct shell *shell, size_t argc,
         return (0);
     }
 
-    int64_t pub_period = INT64_C(60) * (int64_t)strtoll(argv[1], NULL, 10);
+    int64_t pub_period = strtoll(argv[1], NULL, 10);
     if (0 == nvs_data_wlab_pub_period_set(&pub_period)) {
         shell_fprintf(shell, SHELL_NORMAL, "pub_period: %" PRIi64 " [min]\n",
                       pub_period);
@@ -161,24 +151,22 @@ SHELL_CMD_REGISTER(pconfig, NULL,
 SHELL_CMD_REGISTER(mqttconf, NULL,
                    "Configure mqtt worker settings\n"
                    "Usage:\n"
-                   "$ mqttconf <hostname/ip> <port> <ping_period_secs> "
-                   "<max_ping_no_ans_mins>\n"
-                   "$ mqttconf 192.168.1.10 1883 60 10",
+                   "$ mqttconf <hostname/ip> <port>\n"
+                   "$ mqttconf 192.168.1.10 1883",
                    cmd_mqtt_config);
 
-SHELL_CMD_REGISTER(wlabid, NULL,
+SHELL_CMD_REGISTER(deviceid, NULL,
                    "Set custom wlab device id\n"
                    "Usage:\n"
-                   "(set custom wlab id)             $ wlabid <str_hex_id>\n"
-                   "(set custom wlab id)             $ wlabid 1122EEFF22AA\n"
-                   "(restore taking id as mac addr)  $ wlabid",
-                   cmd_wlab_id);
+                   "(set custom wlab id)             $ deviceid <str_hex_id>\n"
+                   "(set custom wlab id)             $ deviceid 1122EEFF22AA\n",
+                   cmd_deviceid);
 
-SHELL_CMD_REGISTER(wlabpubp, NULL,
+SHELL_CMD_REGISTER(pubp, NULL,
                    "Set wlab publish period in seconds\n"
                    "Usage:\n"
-                   "$ wlabpubp <publish_period_mins>\n"
-                   "$ wlabpubp 10                     ",
+                   "$ pubp <publish_period_mins>\n"
+                   "$ pubp 10                     ",
                    cmd_wlab_publish_period);
 
 /* ---------------------------------------------------------------------------
