@@ -77,22 +77,28 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout) {
 
     uart_gsm_rx_clear();
 
-    uint8_t read_buffer[4];
-    char *at_cipsend = "\nAT+CIPSEND\n";
-    LOG_INF("%s", at_cipsend + 1);
+    char at_cipsend[] = "\nAT+CIPSEND\n";
+    LOG_INF("> %s", at_cipsend + 1);
     uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
-    if (!uart_gsm_read_bytes(read_buffer, 3, 4000)) {
-        LOG_ERR("Read 3 bytes failed");
-        goto DONE;
-    } else {
-        uint8_t expected[] = {'\n', '>', ' '};
-        if (0 != memcmp(read_buffer, expected, 3)) {
-            LOG_ERR("Bad 3 bytes");
-            goto DONE;
+
+    int64_t start_ts = k_uptime_get();
+    uint8_t chr = 0;
+    do {
+        if (uart_gsm_getc(&chr, 10)) {
+            if ('>' == chr) {
+                break;
+            }
         }
+    } while ((start_ts + INT64_C(8 * 1000)) > k_uptime_get());
+
+    uart_gsm_rx_clear();
+
+    if (chr != '>') {
+        LOG_ERR("Read prompt failed");
+        goto DONE;
     }
 
-    if (!gsm_modem_cmd_base(data, len, "SEND_OK", timeout)) {
+    if (!gsm_modem_cmd_base(data, len, "SEND OK", timeout)) {
         LOG_ERR("No send ok...");
         goto DONE;
     }
@@ -266,7 +272,7 @@ bool gsm_modem_net_setup(void) {
     LOG_INF("gsm_modem_net_setup start");
     int try = 0;
 
-    for (try = 0; try < 24; try++) {
+    for (try = 0; try < SIM800L_NET_WAIT_SEC; try++) {
         // # AT+CGATT=1            Attach to GPRS service
         // OK
         char at_cgatt[] = "\nAT+CGATT=1\n";
@@ -277,7 +283,7 @@ bool gsm_modem_net_setup(void) {
         }
     }
 
-    if (24 == try) {
+    if (SIM800L_NET_WAIT_SEC == try) {
         goto DONE;
     }
 
@@ -368,7 +374,8 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     size_t send_data_len;
     send_data_len = sprintf(send_data, "\nAT+CIPSTART=\"TCP\",\"%s\",\"%u\"\n",
                             domain, port);
-    if (!gsm_modem_cmd_base(send_data, send_data_len, "CONNECT OK", 4000)) {
+    LOG_INF("> %s", send_data + 1);
+    if (!gsm_modem_cmd_base(send_data, send_data_len, "CONNECT OK", 6000)) {
         LOG_ERR("Cipstart failed");
         goto DONE;
     }
@@ -394,29 +401,35 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     }
 
     uint8_t read_buffer[6];
-    if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
+    if (!uart_gsm_read_bytes(read_buffer, 5, 4000)) {
         LOG_ERR("Read broker answer failed");
         goto DONE;
     } else {
         // server answers: 0a 53 45 4e 44 20 4f 4b 0a 20 02 00 00(SEND OK, 20 02 00 00)
         // https: docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc385349251
-        // 20 - mqtt control packet
-        // 02 - remainging length
-        // 00 - session not present, 01 - session present
-        // 00 - connect return code, 0 - success
-        const uint8_t expected[] = {0x20, 0x02, 0x00, 0x00};
-        if (0 != memcmp(read_buffer, expected, 4)) {
+        // x20 - mqtt control packet
+        // x02 - remainging length
+        // x00 - session not present, 01 - session present
+        // x00 - connect return code, 0 - success
+        const uint8_t expected[] = {'\n', 0x20, 0x02, 0x00, 0x00};
+        if (0 != memcmp(read_buffer, expected, 5)) {
             LOG_ERR("Broker answer bad");
             goto DONE;
         }
     }
 
+    LOG_INF("MQTT broker connection established");
     res = true;
 DONE:
     return (res);
 }
 
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
+    // AT+CIPSEND Publish message: 123, topic /wlabdb/bix
+    // 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 78 31 32 33 1A
+    // uint8_t pubbix[] = {0x30, 0x10, 0x00, 0x0B, 0x2F, 0x77, 0x6C,
+    //                     0x61, 0x62, 0x64, 0x62, 0x2F, 0x62, 0x69,
+    //                     0x78, 0x31, 0x32, 0x33, 0x1A};
     bool res = false;
     uint8_t publish_buffer[128];
     size_t topic_len = strlen(topic);
@@ -431,23 +444,29 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     memcpy(publish_buffer + 4 + topic_len, data, len);
     publish_buffer[total_len++] = 0x1A;   // End
 
+    LOG_INF("Publish len %d", total_len);
+    for (int idx = 0; idx < total_len; idx++) {
+        printk("pubd[%d]: %02X\n", idx, publish_buffer[idx]);
+    }
+
     if (!gsm_modem_cipsend(publish_buffer, total_len, 4000)) {
         goto DONE;
     }
 
-    uint8_t read_buffer[6];
-    if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
-        goto DONE;
-    } else {
-        // 40 - mqtt control packet
-        // 02 - remainging length
-        // XX - package identifier being acknowledged msb
-        // XX - package identifier being acknowledged lsb
-        //  - connect return code, 0 - success
-        if ((0x40 != read_buffer[0]) || (0x02 != read_buffer[1])) {
-            goto DONE;
-        }
-    }
+    // There is no answer from server, maybe higher QoS needed
+    // uint8_t read_buffer[6];
+    // if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
+    //     goto DONE;
+    // } else {
+    //     // 40 - mqtt control packet
+    //     // 02 - remainging length
+    //     // XX - package identifier being acknowledged msb
+    //     // XX - package identifier being acknowledged lsb
+    //     //  - connect return code, 0 - success
+    //     if ((0x40 != read_buffer[0]) || (0x02 != read_buffer[1])) {
+    //         goto DONE;
+    //     }
+    // }
 
     res = true;
 DONE:

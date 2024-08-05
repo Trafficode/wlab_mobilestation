@@ -22,16 +22,8 @@
 #define NVS_ID_WLAB_PUB_PERIOD   (6)
 
 struct mqtt_config {
-    char mqtt_broker[CONFIG_BUFF_MAX_STRING_LEN];
-    uint32_t mqtt_port;
-    uint32_t mqtt_ping_period;        /* secs */
-    uint32_t mqtt_max_ping_no_answer; /* mins */
-};
-
-struct gps_position {
-    float latitude;
-    float longitude;
-    char timezone[CONFIG_BUFF_MAX_STRING_LEN];
+    char broker[CONFIG_BUFF_MAX_STRING_LEN];
+    uint32_t port;
 };
 
 /**
@@ -41,7 +33,8 @@ struct gps_position {
 void nvs_data_init(void);
 
 /**
- * @brief Read mqtt settings data, save in dst pointer
+ * @brief Read mqtt settings data, save in dst pointer.
+ * Default, if not configured is filled with zeros.
  *
  * @param dst Pointer to save settings.
  */
@@ -67,36 +60,6 @@ void nvs_data_wlab_device_id_get(uint64_t *device_id);
  * @param device_id Pointer with data do save
  */
 int nvs_data_wlab_device_id_set(uint64_t *device_id);
-
-/**
- * @brief Read wlab name, if not exists, copy WLAB_STATION to dst as default
- * value.
- *
- * @param wlab_name Destination of wlab_name with min size
- * CONFIG_BUFF_MAX_STRING_LEN
- */
-void nvs_data_wlab_name_get(char *wlab_name);
-
-/**
- * @brief Save wlab name.
- *
- * @param wlab_name Pointer with data do save
- */
-int nvs_data_wlab_name_set(char *wlab_name);
-
-/**
- * @brief Read wlab gps position, if not exists, read and save default datata
- *
- * @param gps_pos Destination of wlab gps position
- */
-void nvs_data_wlab_gps_position_get(struct gps_position *gps_pos);
-
-/**
- * @brief Save wlab gps position.
- *
- * @param gps_pos Pointer with data do save
- */
-int nvs_data_wlab_gps_position_set(struct gps_position *gps_pos);
 
 /**
  * @brief Read wlab publish period.

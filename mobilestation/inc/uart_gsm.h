@@ -49,6 +49,16 @@ bool uart_gsm_read_line(char *rx_line, size_t max_len, int32_t timeout);
  */
 void uart_gsm_rx_clear(void);
 
+/**
+ * @brief uart_gsm_getc
+ * 
+ * @param chr Pointer where received byte will be stored
+ * @param timeout 
+ * @return true Got char properly
+ * @return false Timeout occured
+ */
+bool uart_gsm_getc(uint8_t *chr, int32_t timeout);
+
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/

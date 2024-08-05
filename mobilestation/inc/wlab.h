@@ -4,6 +4,9 @@
  *  Name: wlab.h
  * --------------------------------------------------------------------------*/
 
+#define WLAB_DEFAULT_PUB_PERIOD_SEC INT64_C(10 * 60)
+#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
+
 /**
  * @brief wlab_init
  * 

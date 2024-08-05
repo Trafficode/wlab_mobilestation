@@ -17,6 +17,7 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
 // status led
 // reset button
+// rebooting when net_setup failed and try again
 
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
@@ -31,8 +32,6 @@ int main(void) {
     wlab_init();
 
     for (;;) {
-        LOG_INF("Main loop, systick = %" PRIi64, k_uptime_get());
-        k_sleep(K_MSEC(10000));
         wlab_proc();
     }
     return 0;

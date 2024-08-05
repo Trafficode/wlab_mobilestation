@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define SIM800L_NET_WAIT_SEC (2 * 60)
+
 void gsm_modem_init(void);
 bool gsm_modem_reset(void);
 bool gsm_modem_config(void);

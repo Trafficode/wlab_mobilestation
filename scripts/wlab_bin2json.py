@@ -4,27 +4,27 @@ import struct
 # \x96\x00\x7c\x00\x44\x01\x20\xff\xe0\x00\x18\x00\x21\x00\x2d
 # \x0f\x55\x20\x00\x4d\x01\x70\x01
 
-# sample.version = 0x01;
-# sample.ts = 1234000;
-# sample.id[0] = 0x10;
-# sample.id[1] = 0x21;
-# sample.id[2] = 0x32;
-# sample.id[3] = 0xa0;
-# sample.id[4] = 0xfa;
-# sample.id[5] = 0x03;
-# sample.temp_act = 150;
-# sample.temp_avg = 124;
-# sample.temp_max = 324;
-# sample.temp_min = -224;
-# sample.temp_max_ts_offset = 224;
-# sample.temp_min_ts_offset = 24;
-# sample.humidity_act = 33;
-# sample.humidity_avg = 45;
-# sample.humidity_max = 15;
-# sample.humidity_min = 85;
-# sample.humidity_max_ts_offset = 32;
-# sample.humidity_min_ts_offset = 333;
-# sample.battery_voltage = 368;
+# sample.version = 0x01;                u8
+# sample.ts = 1234000;                  i64
+# sample.id[0] = 0x10;                  u8
+# sample.id[1] = 0x21;                  u8
+# sample.id[2] = 0x32;                  u8
+# sample.id[3] = 0xa0;                  u8
+# sample.id[4] = 0xfa;                  u8
+# sample.id[5] = 0x03;                  u8
+# sample.temp_act = 150;                i16
+# sample.temp_avg = 124;                i16
+# sample.temp_max = 324;                i16
+# sample.temp_min = -224;               i16
+# sample.temp_max_ts_offset = 224;      i16
+# sample.temp_min_ts_offset = 24;       i16
+# sample.humidity_act = 33;             u8
+# sample.humidity_avg = 45;             u8
+# sample.humidity_max = 15;             u8
+# sample.humidity_min = 85;             u8
+# sample.humidity_max_ts_offset = 32;   i16
+# sample.humidity_min_ts_offset = 333;  i16
+# sample.battery_voltage = 368;         i16
     
 packet = bytearray()
 packet.extend(b'\x01\x10\x21\x32\xa0\xfa\x03\x50\xd4\x12\x00\x00\x00\x00\x00')

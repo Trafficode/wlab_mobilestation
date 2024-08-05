@@ -23,6 +23,20 @@ LOG_MODULE_REGISTER(GSMU, LOG_LEVEL_DBG);
 
 void uart_gsm_init(void) {}
 
+bool uart_gsm_getc(uint8_t *chr, int32_t timeout) {
+    bool res = false;
+    int64_t start_ts = k_uptime_get();
+
+    do {
+        if (0 == uart_poll_in(UartDev, chr)) {
+            res = true;
+            break;
+        }
+    } while ((start_ts + (int64_t)timeout) > k_uptime_get());
+
+    return (res);
+}
+
 void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
     for (size_t idx = 0; idx < tx_len; idx++) {
         uart_poll_out(UartDev, tx_data[idx]);
@@ -32,21 +46,21 @@ void uart_gsm_send(uint8_t *tx_data, size_t tx_len) {
 bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
     uint8_t rchar = 0;
     size_t read_len = 0;
-    bool result = false;
+    bool res = false;
     int64_t start_ts = k_uptime_get();
 
     do {
         if (0 == uart_poll_in(UartDev, &rchar)) {
-            LOG_INF("c 0x%u", rchar);
+            LOG_INF("c %u", rchar);
             rx_data[read_len++] = rchar;
             if (read_len == exp_len) {
-                result = true;
+                res = true;
                 break;
             }
         }
     } while ((start_ts + (int64_t)timeout) > k_uptime_get());
 
-    return (result);
+    return (res);
 }
 
 void uart_gsm_rx_clear(void) {
