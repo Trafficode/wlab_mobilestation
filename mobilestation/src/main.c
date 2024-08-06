@@ -90,6 +90,12 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // 15
 // Check wheather it is possible to publish the same sampe twice to db
 
+// 16
+// Store not sended packages to flash memory
+
+// 17
+// disabling sht sensor when sleeping, use ext3v3 pin
+
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
 
