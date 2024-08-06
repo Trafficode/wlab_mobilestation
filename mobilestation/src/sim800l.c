@@ -518,9 +518,9 @@ bool gsm_modem_get_ts_utc(int64_t *ts) {
             time_t epoch_time = mktime(&time_struct);
             if (epoch_time != -1) {
                 if ('+' == utc_offset_sign) {
-                    epoch_time -= 15 * 60 * utc_offset;
+                    epoch_time -= (int64_t)(15 * 60 * utc_offset);
                 } else {
-                    epoch_time += 15 * 60 * utc_offset;
+                    epoch_time += (int64_t)(15 * 60 * utc_offset);
                 }
                 LOG_DBG("Epoch time: %lld", epoch_time);
                 *ts = epoch_time;
