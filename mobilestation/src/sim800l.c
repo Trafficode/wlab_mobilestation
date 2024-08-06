@@ -17,7 +17,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "uart_gsm.h"
+#include "hal/uart_gsm.h"
 
 LOG_MODULE_REGISTER(SIM800L, LOG_LEVEL_DBG);
 

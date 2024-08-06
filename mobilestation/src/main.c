@@ -87,6 +87,9 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // 14
 // Refactor getch api
 
+// 15
+// Check wheather it is possible to publish the same sampe twice to db
+
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
 

@@ -1,27 +1,12 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: wlab.h
+ *  Name: gpio_sim800l.c
  * --------------------------------------------------------------------------*/
-#ifndef WLAB_H_
-#define WLAB_H_
+#include "hal/gpio_sim800l.h"
 
-#define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
-#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
+#include <stdint.h>
 
-/**
- * @brief wlab_init
- * 
- */
-void wlab_init(void);
-
-/**
- * @brief wlab_proc
- * 
- */
-void wlab_proc(void);
-
-#endif /* WLAB_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/
