@@ -21,7 +21,9 @@ static const struct device *const UartDev = DEVICE_DT_GET(DT_ALIAS(uart_gsm));
 
 LOG_MODULE_REGISTER(GSMU, LOG_LEVEL_DBG);
 
-void uart_gsm_init(void) {}
+void uart_gsm_init(void) {
+    ;   // nothing to initialize
+}
 
 bool uart_gsm_getc(uint8_t *chr, int32_t timeout) {
     bool res = false;
@@ -50,21 +52,21 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
     int64_t start_ts = k_uptime_get();
 
     do {
-        if (0 == uart_poll_in(UartDev, &rchar)) {
+        while (uart_gsm_getc(&rchar, INT32_C(10))) {
             rx_data[read_len++] = rchar;
             if (read_len == exp_len) {
                 res = true;
                 break;
             }
         }
-    } while ((start_ts + (int64_t)timeout) > k_uptime_get());
+    } while (!res && (start_ts + (int64_t)timeout) > k_uptime_get());
 
     return (res);
 }
 
 void uart_gsm_rx_clear(void) {
     uint8_t rchar = 0;
-    while (0 == uart_poll_in(UartDev, &rchar)) {
+    while (uart_gsm_getc(&rchar, INT32_C(10))) {
         ;   // skip read data
     }
 }
@@ -77,40 +79,28 @@ bool uart_gsm_read_line(char *rx_line, size_t max_len, int32_t timeout) {
 
     max_len--;   // \0 has to be added at the end of line to make it as string
     do {
-        int32_t chr_timeout = 0;   // 100ms timeout for character
-        do {
-            if (0 != uart_poll_in(UartDev, &rchar)) {
-                k_sleep(K_MSEC(1));
-                chr_timeout++;
-            } else {
-                chr_timeout = 0;
-                if ((rchar == '\n' || rchar == '\r') && (0 == read_len)) {
-                    // Skip first new line characters
-                    continue;
-                }
+        while (uart_gsm_getc(&rchar, INT32_C(10))) {
+            if ((rchar == '\n' || rchar == '\r') && (0 == read_len)) {
+                // Skip first new line characters
+                continue;
+            }
 
-                if (rchar == '\n' || rchar == '\r') {
-                    // End of line got
-                    rx_line[read_len] = '\0';   // append end of string
-                    res = true;
+            if (('\n' == rchar) || ('\r' == rchar)) {
+                // End of line got
+                rx_line[read_len] = '\0';   // append end of string
+                res = true;
+                break;
+            }
+
+            if ((rchar >= ' ') || (rchar <= '~')) {
+                rx_line[read_len++] = rchar;
+                if (read_len == max_len) {
                     break;
                 }
-
-                if (rchar >= ' ' || rchar <= '~') {
-                    rx_line[read_len++] = rchar;
-                    if (read_len == max_len) {
-                        break;
-                    }
-                }
             }
-        } while (chr_timeout < 100);
-
-        if (res) {
-            break;
         }
-    } while ((start_ts + (int64_t)timeout) > k_uptime_get());
+    } while (!res && (start_ts + (int64_t)timeout) > k_uptime_get());
 
-DONE:
     return (res);
 }
 

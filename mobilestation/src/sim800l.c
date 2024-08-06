@@ -279,7 +279,7 @@ bool gsm_modem_net_setup(void) {
     LOG_INF("gsm_modem_net_setup start");
     int try = 0;
 
-    for (try = 0; try < SIM800L_NET_WAIT_SEC; try++) {
+    for (try = 0; try < CONFIG_SIM800L_NET_WAIT_MAX_SEC; try++) {
         // # AT+CGATT=1            Attach to GPRS service
         // OK
         char at_cgatt[] = "\nAT+CGATT=1\n";
@@ -290,7 +290,7 @@ bool gsm_modem_net_setup(void) {
         }
     }
 
-    if (SIM800L_NET_WAIT_SEC == try) {
+    if (CONFIG_SIM800L_NET_WAIT_MAX_SEC == try) {
         goto DONE;
     }
 
@@ -394,9 +394,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';    // Protocol name
-    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;   // Connect flags (Clean session)
+    send_data[7] = 'T';     // Protocol name
+    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;    // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;

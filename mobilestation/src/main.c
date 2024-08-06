@@ -23,6 +23,8 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
 // 3
 // rebooting when net_setup failed and try again
+// * Low battery voltage and drops? Have not seen with capacitor connected
+// and baterry charged.
 
 // 4
 // document sim800l.h
@@ -81,6 +83,9 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // [00:08:21.803,802] <inf> SIM800L: < OK/OK
 // [00:08:23.906,738] <inf> SIM800L: ... gsm_modem_net_setup done res 0
 // [00:08:23.906,768] <err> WLAB: Network up failed
+
+// 14
+// Refactor getch api
 
 int main(void) {
     uint32_t ver = sys_kernel_version_get();

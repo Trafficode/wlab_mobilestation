@@ -7,3 +7,7 @@ config WDG_TIMEOUT_SEC
 config BUFF_MAX_STRING_LEN
 	int "Maximum length for mqtt_broker or wlab name"
 	default 32
+
+config SIM800L_NET_WAIT_MAX_SEC
+	int "Maximum number of seconds waiting for gsm network connection for sim800l modem"
+	default 120
