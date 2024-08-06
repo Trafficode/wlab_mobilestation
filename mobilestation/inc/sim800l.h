@@ -38,13 +38,13 @@ bool gsm_modem_reset(void);
 bool gsm_modem_config(void);
 
 /**
- * @brief gsm_modem_get_timestamp
+ * @brief gsm_modem_get_ts_utc
  * Get timestamp from gsm network. Local time is taken.
  * @param ts Pointer where timestamp will be stored. Epoch time in seconds.
  * @return true 
  * @return false 
  */
-bool gsm_modem_get_timestamp(int64_t *ts);
+bool gsm_modem_get_ts_utc(int64_t *ts);
 
 /**
  * @brief gsm_modem_net_setup

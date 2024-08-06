@@ -59,7 +59,7 @@ static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
 
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
 
-static int64_t wlab_timestamp_get(void);
+static int64_t wlab_ts_utc_get(void);
 static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
@@ -143,7 +143,7 @@ void wlab_init(void) {
         break;
     }
 
-    int64_t ts = wlab_timestamp_get();
+    int64_t ts = wlab_ts_utc_get();
     // Make sure that sample timestamp is exactly the second when the sample
     // should be. TS will be a bit bigger so substract this difference
     SampleTsSec = ts - (ts % PublishPeriodSec);
@@ -224,7 +224,7 @@ void wlab_proc(void) {
         LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
     }
 
-    int64_t ts = wlab_timestamp_get();
+    int64_t ts = wlab_ts_utc_get();
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
 
@@ -303,7 +303,7 @@ static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
     buffer->cnt++;
 }
 
-static int64_t wlab_timestamp_get(void) {
+static int64_t wlab_ts_utc_get(void) {
     int64_t uptime_sec = k_uptime_get() / 1000;
     return (UpdateTsSec + (uptime_sec - UpdateTsUptimeSec));
 }
@@ -311,7 +311,7 @@ static int64_t wlab_timestamp_get(void) {
 static bool wlab_timestamp_sync(void) {
     bool res = false;
 
-    if (gsm_modem_get_timestamp(&UpdateTsSec)) {
+    if (gsm_modem_get_ts_utc(&UpdateTsSec)) {
         UpdateTsUptimeSec = k_uptime_get() / 1000;
         res = true;
     }
@@ -326,7 +326,7 @@ static void wlab_timestamp_check(void) {
 
     bool check_status = false;
     do {
-        if (wlab_timestamp_get() < (SampleTsSec + PublishPeriodSec)) {
+        if (wlab_ts_utc_get() < (SampleTsSec + PublishPeriodSec)) {
             // keep continue waiting
             k_sleep(K_MSEC(1000));
         } else {

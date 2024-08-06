@@ -394,9 +394,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';     // Protocol name
-    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;    // Connect flags (Clean session)
+    send_data[7] = 'T';    // Protocol name
+    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;   // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;
@@ -476,7 +476,7 @@ DONE:
     return (res);
 }
 
-bool gsm_modem_get_timestamp(int64_t *ts) {
+bool gsm_modem_get_ts_utc(int64_t *ts) {
     bool res = false;
     char read_line[64];
     struct tm time_struct;
@@ -484,6 +484,7 @@ bool gsm_modem_get_timestamp(int64_t *ts) {
     // AT+CCLK?
     // +CCLK : "21/07/17,12:34:56+00"
     // +CCLK: "04/01/01,00:05:55+08" in case of failed
+    // +08 multiply of 15 minutes
     char at_clk[] = "\nAT+CCLK?\n";
     uart_gsm_rx_clear();
     uart_gsm_send(at_clk, sizeof(at_clk));
@@ -500,9 +501,11 @@ bool gsm_modem_get_timestamp(int64_t *ts) {
             goto DONE;
         }
 
-        int32_t year, month, day, hour, minute, second;
-        if (6 == sscanf(read_line, "+CCLK: \"%d/%d/%d,%d:%d:%d%*d\"", &year,
-                        &month, &day, &hour, &minute, &second)) {
+        int32_t year, month, day, hour, minute, second, utc_offset;
+        char utc_offset_sign;
+        if (8 == sscanf(read_line, "+CCLK: \"%d/%d/%d,%d:%d:%d%c%d\"", &year,
+                        &month, &day, &hour, &minute, &second, &utc_offset_sign,
+                        &utc_offset)) {
             time_struct.tm_year = year + 100;   // Years since 1900
             time_struct.tm_mon = month - 1;     // Months since January
             time_struct.tm_mday = day;
@@ -514,7 +517,12 @@ bool gsm_modem_get_timestamp(int64_t *ts) {
 
             time_t epoch_time = mktime(&time_struct);
             if (epoch_time != -1) {
-                LOG_DBG("Epoch time: %lld\n", epoch_time);
+                if ('+' == utc_offset_sign) {
+                    epoch_time -= 15 * 60 * utc_offset;
+                } else {
+                    epoch_time += 15 * 60 * utc_offset;
+                }
+                LOG_DBG("Epoch time: %lld", epoch_time);
                 *ts = epoch_time;
             } else {
                 LOG_ERR("Failed to convert to epoch time");
