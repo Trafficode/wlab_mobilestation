@@ -17,22 +17,16 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "hal/uart_gsm.h"
+#include "periphery/gpio_sim800l.h"
+#include "periphery/uart_gsm.h"
 
 LOG_MODULE_REGISTER(SIM800L, LOG_LEVEL_DBG);
 
 static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
                                int32_t timeout);
 
-const struct gpio_dt_spec GsmResetPin =
-    GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), gsmreset_gpios);
-
 void gsm_modem_init(void) {
-    if (!device_is_ready(GsmResetPin.port)) {
-        LOG_ERR("GsmResetPin not ready");
-    }
-
-    gpio_pin_configure_dt(&GsmResetPin, GPIO_OUTPUT_HIGH);
+    gpio_sim800l_init();
     uart_gsm_init();
 }
 

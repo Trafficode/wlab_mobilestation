@@ -14,6 +14,7 @@
 #include <zephyr/logging/log.h>
 
 #include "nvs_data.h"
+#include "periphery/gpio_ext3v3.h"
 #include "sim800l.h"
 #include "version.h"
 
@@ -79,9 +80,6 @@ struct mqtt_config MqttConfig = {};
 
 const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
-const struct gpio_dt_spec External3v3Pin =
-    GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), external3v3_gpios);
-
 void wlab_init(void) {
     if (!device_is_ready(Sht3xDev)) {
         LOG_ERR("Device %s is not ready\n", Sht3xDev->name);
@@ -95,11 +93,6 @@ void wlab_init(void) {
     LOG_INF("MqttConfig.broker <%s>", MqttConfig.broker);
     LOG_INF("MqttConfig.port <%u>", MqttConfig.port);
 
-    if (!device_is_ready(External3v3Pin.port)) {
-        LOG_ERR("External3v3Pin enable not ready");
-    }
-
-    gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
     gsm_modem_init();
 
     while (true) {

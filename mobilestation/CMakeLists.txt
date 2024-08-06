@@ -6,8 +6,9 @@ project(mobilestation)
 target_include_directories(app PRIVATE inc)
 
 target_sources(app PRIVATE 
-    src/hal/uart_gsm.c
-    src/hal/gpio_sim800l.c
+    src/periphery/uart_gsm.c
+    src/periphery/gpio_sim800l.c
+    src/periphery/gpio_ext3v3.c
     src/main.c
     src/nvs_data.c
     src/shell_commands.c

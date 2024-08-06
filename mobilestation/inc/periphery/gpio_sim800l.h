@@ -1,14 +1,28 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: gpio_sim800l.c
+ *  Name: gpio_sim800l.h
  * --------------------------------------------------------------------------*/
 #ifndef GPIO_SIM800L_H_
 #define GPIO_SIM800L_H_
 
-#include <stdint.h>
+/**
+ * @brief gpio_sim800l_init
+ * DT defined as gsmreset_gpios. Initialise and configure peripherals.
+ */
+void gpio_sim800l_init(void);
 
-#include "hal/gpio_sim800l.h"
+/**
+ * @brief gpio_sim800l_rst_up
+ * Go to logical pin high.
+ */
+void gpio_sim800l_rst_up(void);
+
+/**
+ * @brief gpio_sim800l_rst_down
+ * Go to logical pin low.
+ */
+void gpio_sim800l_rst_down(void);
 
 #endif /* GPIO_SIM800L_H_ */
 /* ---------------------------------------------------------------------------
