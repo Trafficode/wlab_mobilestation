@@ -96,6 +96,12 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // 17
 // disabling sht sensor when sleeping, use ext3v3 pin
 
+// 18
+// measure power consumption when idle
+
+// 19
+// set APN terminal command
+
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
 
