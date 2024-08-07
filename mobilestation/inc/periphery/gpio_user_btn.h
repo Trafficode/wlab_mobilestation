@@ -18,7 +18,7 @@ void gpio_user_btn_init(void);
  * @brief 
  * 
  * @param cb Provided callback will be run for every edge occured on button pin.
- * No contact vibrations implemented. If state = 0 means button pressed.
+ * No contact vibrations avoidance implemented. If state = 0 means button pressed.
  * Released otherwise.
  */
 void gpio_user_btn_register_cb(void (*cb)(uint8_t state));
