@@ -16,7 +16,9 @@
 LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
 // 1
-// status led
+// status led P0.15
+// adc batt read P0.04
+// user button P0.29
 
 // 2
 // reset button
@@ -84,9 +86,6 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // [00:08:23.906,738] <inf> SIM800L: ... gsm_modem_net_setup done res 0
 // [00:08:23.906,768] <err> WLAB: Network up failed
 
-// 14
-// Refactor getch api
-
 // 15
 // Check wheather it is possible to publish the same sampe twice to db
 
@@ -111,7 +110,6 @@ int main(void) {
             SYS_KERNEL_VER_PATCHLEVEL(ver));
 
     nvs_data_init();
-
     wlab_init();
 
     for (;;) {

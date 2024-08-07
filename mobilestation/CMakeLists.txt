@@ -9,6 +9,8 @@ target_sources(app PRIVATE
     src/periphery/uart_gsm.c
     src/periphery/gpio_sim800l.c
     src/periphery/gpio_ext3v3.c
+    src/periphery/gpio_status_led.c
+    src/periphery/gpio_user_btn.c
     src/main.c
     src/nvs_data.c
     src/shell_commands.c

@@ -15,6 +15,8 @@
 
 #include "nvs_data.h"
 #include "periphery/gpio_ext3v3.h"
+#include "periphery/gpio_status_led.h"
+#include "periphery/gpio_user_btn.h"
 #include "sim800l.h"
 #include "version.h"
 
@@ -82,18 +84,22 @@ const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
 void wlab_init(void) {
     if (!device_is_ready(Sht3xDev)) {
-        LOG_ERR("Device %s is not ready\n", Sht3xDev->name);
+        LOG_ERR("Device %s is not ready", Sht3xDev->name);
     }
+
     nvs_data_wlab_pub_period_get(&PublishPeriodSec);
     PublishPeriodSec *= INT64_C(60);   // conver to seconds
     nvs_data_wlab_device_id_get(&DevieId);
     nvs_data_mqtt_config_get(&MqttConfig);
+
     LOG_INF("PublishPeriodSec %" PRIi64, PublishPeriodSec);
     LOG_INF("DevieId %" PRIX64, DevieId);
     LOG_INF("MqttConfig.broker <%s>", MqttConfig.broker);
     LOG_INF("MqttConfig.port <%u>", MqttConfig.port);
 
     gsm_modem_init();
+    gpio_status_led_init();
+    gpio_user_btn_init();
 
     while (true) {
         if (!gsm_modem_test()) {
