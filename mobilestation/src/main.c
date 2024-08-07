@@ -18,8 +18,9 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
 // 1
 // status led P0.15
-// adc batt read P0.04
+// adc batt read P0.02, not connected internally
 // user button P0.29
+// power pin 0.13
 
 // 2
 // reset button
