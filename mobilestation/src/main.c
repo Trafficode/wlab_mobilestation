@@ -91,7 +91,7 @@ int main(void) {
     uint32_t ver = sys_kernel_version_get();
 
     LOG_INF("Board: %s", CONFIG_BOARD);
-    LOG_INF("Firmware: %s Zephyr: %u.%u.%u", FIRMWARE_VERSION,
+    LOG_INF("Firmware: v%d Zephyr: %u.%u.%u", FIRMWARE_VERSION,
             SYS_KERNEL_VER_MAJOR(ver), SYS_KERNEL_VER_MINOR(ver),
             SYS_KERNEL_VER_PATCHLEVEL(ver));
 

@@ -6,7 +6,8 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-#define FIRMWARE_VERSION "1.1"
+// VERSION 1, NCS 2.5.3
+#define FIRMWARE_VERSION (1)
 
 #endif /* VERSION_H_ */
 /* ---------------------------------------------------------------------------
