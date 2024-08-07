@@ -14,6 +14,7 @@
 #include <zephyr/logging/log.h>
 
 #include "nvs_data.h"
+#include "periphery/adc_battery_vol.h"
 #include "periphery/gpio_ext3v3.h"
 #include "periphery/gpio_status_led.h"
 #include "periphery/gpio_user_btn.h"
@@ -100,6 +101,7 @@ void wlab_init(void) {
     gsm_modem_init();
     gpio_status_led_init();
     gpio_user_btn_init();
+    adc_battery_vol_init();
 
     while (true) {
         if (!gsm_modem_test()) {
@@ -210,6 +212,10 @@ DONE:
 void wlab_proc(void) {
     struct sensor_value temp, hum;
     int16_t i_temp, i_humidity;
+    int32_t batt_milliv;
+
+    batt_milliv = adc_battery_vol_get_milliv();
+    LOG_INF("Battery voltage: %d[mv]", batt_milliv);
 
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
     if (0 == sensor_rc) {

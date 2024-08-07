@@ -4,6 +4,7 @@
  *  Name: main.c
  * --------------------------------------------------------------------------*/
 #include <stdint.h>
+#include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/kernel_version.h>
