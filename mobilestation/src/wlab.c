@@ -103,46 +103,46 @@ void wlab_init(void) {
     gpio_user_btn_init();
     adc_battery_vol_init();
 
-    while (true) {
-        if (!gsm_modem_test()) {
-            LOG_ERR("No communication with modem");
-            continue;
-        }
+    // while (true) {
+    //     if (!gsm_modem_test()) {
+    //         LOG_ERR("No communication with modem");
+    //         continue;
+    //     }
 
-        if (!gsm_modem_config()) {
-            LOG_ERR("Configure modem failed");
-            continue;
-        }
+    //     if (!gsm_modem_config()) {
+    //         LOG_ERR("Configure modem failed");
+    //         continue;
+    //     }
 
-        if (!gsm_modem_reset()) {
-            LOG_ERR("Reset modem failed");
-            continue;
-        }
+    //     if (!gsm_modem_reset()) {
+    //         LOG_ERR("Reset modem failed");
+    //         continue;
+    //     }
 
-        if (!gsm_modem_test()) {
-            LOG_ERR("No communication with modem");
-            continue;
-        }
+    //     if (!gsm_modem_test()) {
+    //         LOG_ERR("No communication with modem");
+    //         continue;
+    //     }
 
-        if (!gsm_modem_net_setup()) {
-            LOG_ERR("Network up failed");
-            continue;
-        }
+    //     if (!gsm_modem_net_setup()) {
+    //         LOG_ERR("Network up failed");
+    //         continue;
+    //     }
 
-        if (!gsm_modem_net_setup()) {
-            LOG_ERR("Network up failed");
-            continue;
-        }
+    //     if (!gsm_modem_net_setup()) {
+    //         LOG_ERR("Network up failed");
+    //         continue;
+    //     }
 
-        if (!wlab_timestamp_sync()) {
-            LOG_ERR("Time sync failed");
-            continue;
-        }
+    //     if (!wlab_timestamp_sync()) {
+    //         LOG_ERR("Time sync failed");
+    //         continue;
+    //     }
 
-        // all done sucessfully, put modem into sleep mode
-        gsm_modem_sleep();
-        break;
-    }
+    //     // all done sucessfully, put modem into sleep mode
+    //     gsm_modem_sleep();
+    //     break;
+    // }
 
     int64_t ts = wlab_timestamp_get();
     // Make sure that sample timestamp is exactly the second when the sample
@@ -230,26 +230,26 @@ void wlab_proc(void) {
     }
 
     int64_t ts = wlab_timestamp_get();
-    if (ts >= SampleTsSec + PublishPeriodSec) {
-        // Send sample and sync time
+    // if (ts >= SampleTsSec + PublishPeriodSec) {
+    //     // Send sample and sync time
 
-        if (TempBuffer.cnt > 0) {
-            wlab_publish();
-        } else {
-            // Device not configured or sensor problem
-        }
+    //     if (TempBuffer.cnt > 0) {
+    //         wlab_publish();
+    //     } else {
+    //         // Device not configured or sensor problem
+    //     }
 
-        // Check if time after sycn is not lower that counted ts
-        wlab_timestamp_check();
+    //     // Check if time after sycn is not lower that counted ts
+    //     wlab_timestamp_check();
 
-        // Make sure that sample timestamp is exactly the second when the sample
-        // should be. TS will be a bit bigger so substract this difference
-        SampleTsSec = ts - (ts % PublishPeriodSec);
+    //     // Make sure that sample timestamp is exactly the second when the sample
+    //     // should be. TS will be a bit bigger so substract this difference
+    //     SampleTsSec = ts - (ts % PublishPeriodSec);
 
-        // Buffers reset
-        wlab_buffer_init(&TempBuffer, SampleTsSec);
-        wlab_buffer_init(&HumBuffer, SampleTsSec);
-    }
+    //     // Buffers reset
+    //     wlab_buffer_init(&TempBuffer, SampleTsSec);
+    //     wlab_buffer_init(&HumBuffer, SampleTsSec);
+    // }
 
     if (0 == sensor_rc) {
         wlab_buffer_commit(&TempBuffer, i_temp, ts);

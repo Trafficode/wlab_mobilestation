@@ -60,23 +60,18 @@
 };
 
 &adc {
-	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+	status = "okay";
 	channel@2 {
 		reg = <2>;
-		zephyr,gain = "ADC_GAIN_2_3";
-		zephyr,reference = "ADC_REF_VDD_1";
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN2>; /* P0.04 for nRF52840 */
 		zephyr,resolution = <12>;
-		zephyr,oversampling = <4>;
 	};
 };
-
-// &adc_channel {
-	//     status = "okay";
-	//     io-channels = <&adc 1>; // ADC channel number
-// };
 
 &gpiote {
 	status = "okay";
