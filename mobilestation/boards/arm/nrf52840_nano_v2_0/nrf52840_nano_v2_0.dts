@@ -55,7 +55,6 @@
 		external3v3-gpios = <&gpio0 13 GPIO_PULL_UP>;
 		gsmreset-gpios = <&gpio0 10 GPIO_PULL_UP>;
 		io-channels = <&adc 0>;
-		io-channel-names = "battery";
 	};
 };
 
