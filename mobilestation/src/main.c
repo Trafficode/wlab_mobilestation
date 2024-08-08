@@ -22,6 +22,9 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // user button P0.29
 // power pin 0.13
 
+// 1.1
+// power saving mode, enter if very low battery voltage
+
 // 2
 // reset button
 

@@ -51,16 +51,10 @@ struct __attribute__((packed)) wlab_db_bin {
     int16_t battery_voltage;
 };
 
-// {'version': 1, 'id': '01:00:00:30:20:10', 'ts': 1722882000, 'temp_act': 227, 'temp_avg': 225, 'temp_max': 227, 'temp_min': 222,
-// 'temp_max_ts_offset': -223, 'temp_min_ts_offset': 6096, 'humidity_act': 77, 'humidity_avg': 81, 'humidity_max': 92, 'humidity_min': 77,
-// 'humidity_max_ts_offset': 0, 'humidity_min_ts_offset': 6276, 'battery_voltage': 0}
-// {'UID': '01:00:00:30:20:10', 'TS': 1722882000, 'SERIE': {'Temperature':
-// {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888096, 'i_max_ts': 1722881777},
-// 'Humidity': {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888276, 'i_max_ts': 1722882000}}}
+LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
 
 static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
-
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
 
 static int64_t wlab_timestamp_get(void);
@@ -69,7 +63,43 @@ static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
 
-LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
+static void wlab_publish_succ_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(2));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(200));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(2));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_publish_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(100));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_startup_succ_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(200));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(200));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(200));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_startup_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_sensor_succ_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(2));
+    gpio_status_led_set_state(0);
+}
 
 struct wlab_buffer TempBuffer;
 struct wlab_buffer HumBuffer;
@@ -103,46 +133,53 @@ void wlab_init(void) {
     gpio_user_btn_init();
     adc_battery_vol_init();
 
-    // while (true) {
-    //     if (!gsm_modem_test()) {
-    //         LOG_ERR("No communication with modem");
-    //         continue;
-    //     }
+    int32_t startup_try = 0;
+    while (true) {
+        if (startup_try > 0) {
+            wlab_startup_failed_led_scene();
+        }
 
-    //     if (!gsm_modem_config()) {
-    //         LOG_ERR("Configure modem failed");
-    //         continue;
-    //     }
+        startup_try++;
+        if (!gsm_modem_test()) {
+            LOG_ERR("No communication with modem");
+            continue;
+        }
 
-    //     if (!gsm_modem_reset()) {
-    //         LOG_ERR("Reset modem failed");
-    //         continue;
-    //     }
+        if (!gsm_modem_config()) {
+            LOG_ERR("Configure modem failed");
+            continue;
+        }
 
-    //     if (!gsm_modem_test()) {
-    //         LOG_ERR("No communication with modem");
-    //         continue;
-    //     }
+        if (!gsm_modem_reset()) {
+            LOG_ERR("Reset modem failed");
+            continue;
+        }
 
-    //     if (!gsm_modem_net_setup()) {
-    //         LOG_ERR("Network up failed");
-    //         continue;
-    //     }
+        if (!gsm_modem_test()) {
+            LOG_ERR("No communication with modem");
+            continue;
+        }
 
-    //     if (!gsm_modem_net_setup()) {
-    //         LOG_ERR("Network up failed");
-    //         continue;
-    //     }
+        if (!gsm_modem_net_setup()) {
+            LOG_ERR("Network up failed");
+            continue;
+        }
 
-    //     if (!wlab_timestamp_sync()) {
-    //         LOG_ERR("Time sync failed");
-    //         continue;
-    //     }
+        if (!gsm_modem_net_setup()) {
+            LOG_ERR("Network up failed");
+            continue;
+        }
 
-    //     // all done sucessfully, put modem into sleep mode
-    //     gsm_modem_sleep();
-    //     break;
-    // }
+        if (!wlab_timestamp_sync()) {
+            LOG_ERR("Time sync failed");
+            continue;
+        }
+
+        // all done sucessfully, put modem into sleep mode
+        gsm_modem_sleep();
+        wlab_startup_succ_led_scene();
+        break;
+    }
 
     int64_t ts = wlab_timestamp_get();
     // Make sure that sample timestamp is exactly the second when the sample
@@ -225,31 +262,36 @@ void wlab_proc(void) {
         i_temp = temp.val1 * 10 + temp.val2 / 100000;
         i_humidity = hum.val1 * 10 + hum.val2 / 100000;
         LOG_INF("SHT3XD: %d Cel ; %d %%RH", i_temp, i_humidity);
+        wlab_sensor_succ_led_scene();
     } else {
         LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
     }
 
     int64_t ts = wlab_timestamp_get();
-    // if (ts >= SampleTsSec + PublishPeriodSec) {
-    //     // Send sample and sync time
+    if (ts >= SampleTsSec + PublishPeriodSec) {
+        // Send sample and sync time
 
-    //     if (TempBuffer.cnt > 0) {
-    //         wlab_publish();
-    //     } else {
-    //         // Device not configured or sensor problem
-    //     }
+        if (TempBuffer.cnt > 0) {
+            if (wlab_publish()) {
+                wlab_publish_succ_led_scene();
+            } else {
+                wlab_publish_succ_led_scene();
+            }
+        } else {
+            // Device not configured or sensor problem
+        }
 
-    //     // Check if time after sycn is not lower that counted ts
-    //     wlab_timestamp_check();
+        // Check if time after sycn is not lower that counted ts
+        wlab_timestamp_check();
 
-    //     // Make sure that sample timestamp is exactly the second when the sample
-    //     // should be. TS will be a bit bigger so substract this difference
-    //     SampleTsSec = ts - (ts % PublishPeriodSec);
+        // Make sure that sample timestamp is exactly the second when the sample
+        // should be. TS will be a bit bigger so substract this difference
+        SampleTsSec = ts - (ts % PublishPeriodSec);
 
-    //     // Buffers reset
-    //     wlab_buffer_init(&TempBuffer, SampleTsSec);
-    //     wlab_buffer_init(&HumBuffer, SampleTsSec);
-    // }
+        // Buffers reset
+        wlab_buffer_init(&TempBuffer, SampleTsSec);
+        wlab_buffer_init(&HumBuffer, SampleTsSec);
+    }
 
     if (0 == sensor_rc) {
         wlab_buffer_commit(&TempBuffer, i_temp, ts);
