@@ -11,6 +11,12 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+// VBAT---|R1=680k|---ADC---|R2=1M|---GND
+// VBAT = ADC*(R1+R2)/R2
+
+#define R1_K INT32_C(680)
+#define R2_K INT32_C(1000)
+
 static const struct adc_dt_spec AdcChannel =
     ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 
@@ -61,6 +67,8 @@ int32_t adc_battery_vol_get_milliv(void) {
         goto DONE;
     }
 
+    // Convert to real battery voltage
+    milliv = (milliv * (R1_K + R2_K)) / R2_K;
 DONE:
     return (milliv);
 }
