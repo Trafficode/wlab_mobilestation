@@ -49,6 +49,12 @@ int32_t adc_battery_vol_get_milliv(void) {
         goto DONE;
     }
 
+    if (AdcChannel.channel_cfg.differential) {
+        milliv = (int32_t)((int16_t)buf);
+    } else {
+        milliv = (int32_t)buf;
+    }
+
     err = adc_raw_to_millivolts_dt(&AdcChannel, &milliv);
     if (err < 0) {
         LOG_WRN(" (value in mV not available)");
