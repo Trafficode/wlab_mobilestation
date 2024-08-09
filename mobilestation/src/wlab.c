@@ -64,40 +64,52 @@ static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
 
 static void wlab_publish_succ_led_scene(void) {
-    gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(2));
-    gpio_status_led_set_state(0);
-    k_sleep(K_MSEC(200));
-    gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(2));
-    gpio_status_led_set_state(0);
+    // No aciton
 }
 
 static void wlab_publish_failed_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(100));
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_startup_succ_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(200));
-    gpio_status_led_set_state(0);
-    k_sleep(K_MSEC(200));
-    gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(200));
+    k_sleep(K_MSEC(1));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_startup_failed_led_scene(void) {
     gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
     k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_sensor_succ_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(2));
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_sensor_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
     gpio_status_led_set_state(0);
 }
 
@@ -128,8 +140,10 @@ void wlab_init(void) {
     LOG_INF("MqttConfig.broker <%s>", MqttConfig.broker);
     LOG_INF("MqttConfig.port <%u>", MqttConfig.port);
 
-    gsm_modem_init();
     gpio_status_led_init();
+    gpio_status_led_set_state(0);
+
+    gsm_modem_init();
     gpio_user_btn_init();
     adc_battery_vol_init();
 
@@ -251,9 +265,6 @@ void wlab_proc(void) {
     int16_t i_temp, i_humidity;
     int32_t batt_milliv;
 
-    batt_milliv = adc_battery_vol_get_milliv();
-    LOG_INF("Battery voltage: %d[mv]", batt_milliv);
-
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
     if (0 == sensor_rc) {
         sensor_channel_get(Sht3xDev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
@@ -265,17 +276,22 @@ void wlab_proc(void) {
         wlab_sensor_succ_led_scene();
     } else {
         LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
+        wlab_sensor_failed_led_scene();
     }
+
+    batt_milliv = adc_battery_vol_get_milliv();
+    LOG_INF("Battery voltage: %d[mv]", batt_milliv);
+    // Temporary instead of humidity, send battery voltage
+    i_humidity = batt_milliv / 10;
 
     int64_t ts = wlab_timestamp_get();
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
-
         if (TempBuffer.cnt > 0) {
             if (wlab_publish()) {
                 wlab_publish_succ_led_scene();
             } else {
-                wlab_publish_succ_led_scene();
+                wlab_publish_failed_led_scene();
             }
         } else {
             // Device not configured or sensor problem
@@ -298,7 +314,7 @@ void wlab_proc(void) {
         wlab_buffer_commit(&HumBuffer, i_humidity, ts);
     }
 
-    k_sleep(K_MSEC(20 * 1000));   // read sample every 20sec
+    k_sleep(K_MSEC(10 * 1000));   // read sample every 20sec
 }
 
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample) {
