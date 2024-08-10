@@ -1,27 +1,30 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: wlab.h
+ *  Name: gpio_ext3v3.h
  * --------------------------------------------------------------------------*/
-#ifndef WLAB_H_
-#define WLAB_H_
-
-#define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
-#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
+#ifndef GPIO_EXT3V3_H_
+#define GPIO_EXT3V3_H_
 
 /**
- * @brief wlab_init
- * 
+ * @brief gpio_ext3v3_init
+ * DT defined as external3v3_gpios. Initialise and configure peripherals.
  */
-void wlab_init(void);
+void gpio_ext3v3_init(void);
 
 /**
- * @brief wlab_proc
- * 
+ * @brief gpio_ext3v3_enable
+ * Go to logical pin high.
  */
-void wlab_proc(void);
+void gpio_ext3v3_enable(void);
 
-#endif /* WLAB_H_ */
+/**
+ * @brief gpio_ext3v3_disable
+ * Go to logical pin low.
+ */
+void gpio_ext3v3_disable(void);
+
+#endif /* GPIO_EXT3V3_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/

@@ -1,27 +1,27 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: wlab.h
+ *  Name: gpio_status_led.h
  * --------------------------------------------------------------------------*/
-#ifndef WLAB_H_
-#define WLAB_H_
+#ifndef GPIO_STATUS_LED_H_
+#define GPIO_STATUS_LED_H_
 
-#define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
-#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
-
-/**
- * @brief wlab_init
- * 
- */
-void wlab_init(void);
+#include <stdint.h>
 
 /**
- * @brief wlab_proc
- * 
+ * @brief gpio_status_led_init
+ * Initialise as turned off.
  */
-void wlab_proc(void);
+void gpio_status_led_init(void);
 
-#endif /* WLAB_H_ */
+/**
+ * @brief gpio_status_led_set_state
+ * 
+ * @param led_on 0 to turn led off, ~0 to turn on
+ */
+void gpio_status_led_set_state(uint8_t led_on);
+
+#endif /* GPIO_STATUS_LED_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/

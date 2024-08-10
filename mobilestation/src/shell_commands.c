@@ -11,7 +11,7 @@
 #include <zephyr/sys/util.h>
 
 #include "nvs_data.h"
-#include "uart_gsm.h"
+#include "periphery/uart_gsm.h"
 
 // $ mqttconf <hostname/ip> <port>
 static int cmd_mqtt_config(const struct shell *shell, size_t argc,

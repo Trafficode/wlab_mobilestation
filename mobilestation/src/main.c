@@ -4,6 +4,7 @@
  *  Name: main.c
  * --------------------------------------------------------------------------*/
 #include <stdint.h>
+#include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/kernel_version.h>
@@ -16,7 +17,13 @@
 LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 
 // 1
-// status led
+// status led P0.15
+// adc batt read P0.02, not connected internally
+// user button P0.29
+// power pin 0.13
+
+// 1.1
+// power saving mode, enter if very low battery voltage
 
 // 2
 // reset button
@@ -84,8 +91,20 @@ LOG_MODULE_REGISTER(MAIN, LOG_LEVEL_DBG);
 // [00:08:23.906,738] <inf> SIM800L: ... gsm_modem_net_setup done res 0
 // [00:08:23.906,768] <err> WLAB: Network up failed
 
-// 14
-// Refactor getch api
+// 15
+// Check wheather it is possible to publish the same sampe twice to db
+
+// 16
+// Store not sended packages to flash memory
+
+// 17
+// disabling sht sensor when sleeping, use ext3v3 pin
+
+// 18
+// measure power consumption when idle
+
+// 19
+// set APN terminal command
 
 int main(void) {
     uint32_t ver = sys_kernel_version_get();
@@ -96,7 +115,6 @@ int main(void) {
             SYS_KERNEL_VER_PATCHLEVEL(ver));
 
     nvs_data_init();
-
     wlab_init();
 
     for (;;) {

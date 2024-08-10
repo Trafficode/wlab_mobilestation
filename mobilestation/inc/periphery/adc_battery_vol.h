@@ -1,27 +1,27 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: wlab.h
+ *  Name: adc_battery_vol.h
  * --------------------------------------------------------------------------*/
-#ifndef WLAB_H_
-#define WLAB_H_
+#ifndef ADC_BATTERY_VOL_H_
+#define ADC_BATTERY_VOL_H_
 
-#define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
-#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
-
-/**
- * @brief wlab_init
- * 
- */
-void wlab_init(void);
+#include <stdint.h>
 
 /**
- * @brief wlab_proc
+ * @brief adc_battery_vol_init
  * 
  */
-void wlab_proc(void);
+void adc_battery_vol_init(void);
 
-#endif /* WLAB_H_ */
+/**
+ * @brief adc_battery_vol_get_milliv
+ * 
+ * @return int32_t Battery voltage in millivolts
+ */
+int32_t adc_battery_vol_get_milliv(void);
+
+#endif /* ADC_BATTERY_VOL_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/

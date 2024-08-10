@@ -1,27 +1,30 @@
 /* ---------------------------------------------------------------------------
  *  mobilestation
  * ---------------------------------------------------------------------------
- *  Name: wlab.h
+ *  Name: gpio_sim800l.h
  * --------------------------------------------------------------------------*/
-#ifndef WLAB_H_
-#define WLAB_H_
-
-#define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
-#define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
+#ifndef GPIO_SIM800L_H_
+#define GPIO_SIM800L_H_
 
 /**
- * @brief wlab_init
- * 
+ * @brief gpio_sim800l_init
+ * DT defined as gsmreset_gpios. Initialise and configure peripherals.
  */
-void wlab_init(void);
+void gpio_sim800l_init(void);
 
 /**
- * @brief wlab_proc
- * 
+ * @brief gpio_sim800l_rst_up
+ * Go to logical pin high.
  */
-void wlab_proc(void);
+void gpio_sim800l_rst_up(void);
 
-#endif /* WLAB_H_ */
+/**
+ * @brief gpio_sim800l_rst_down
+ * Go to logical pin low.
+ */
+void gpio_sim800l_rst_down(void);
+
+#endif /* GPIO_SIM800L_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
  * --------------------------------------------------------------------------*/

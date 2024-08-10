@@ -14,6 +14,10 @@
 #include <zephyr/logging/log.h>
 
 #include "nvs_data.h"
+#include "periphery/adc_battery_vol.h"
+#include "periphery/gpio_ext3v3.h"
+#include "periphery/gpio_status_led.h"
+#include "periphery/gpio_user_btn.h"
 #include "sim800l.h"
 #include "version.h"
 
@@ -47,16 +51,10 @@ struct __attribute__((packed)) wlab_db_bin {
     int16_t battery_voltage;
 };
 
-// {'version': 1, 'id': '01:00:00:30:20:10', 'ts': 1722882000, 'temp_act': 227, 'temp_avg': 225, 'temp_max': 227, 'temp_min': 222,
-// 'temp_max_ts_offset': -223, 'temp_min_ts_offset': 6096, 'humidity_act': 77, 'humidity_avg': 81, 'humidity_max': 92, 'humidity_min': 77,
-// 'humidity_max_ts_offset': 0, 'humidity_min_ts_offset': 6276, 'battery_voltage': 0}
-// {'UID': '01:00:00:30:20:10', 'TS': 1722882000, 'SERIE': {'Temperature':
-// {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888096, 'i_max_ts': 1722881777},
-// 'Humidity': {'f_avg': '22.5', 'f_act': '22.7', 'f_min': '22.2', 'f_max': '22.7', 'i_min_ts': 1722888276, 'i_max_ts': 1722882000}}}
+LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
 
 static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
-
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
 
 static int64_t wlab_ts_utc_get(void);
@@ -65,7 +63,55 @@ static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
 
-LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
+static void wlab_publish_succ_led_scene(void) {
+    // No aciton
+}
+
+static void wlab_publish_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_startup_succ_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_startup_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_sensor_succ_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
+
+static void wlab_sensor_failed_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1));
+    gpio_status_led_set_state(0);
+}
 
 struct wlab_buffer TempBuffer;
 struct wlab_buffer HumBuffer;
@@ -79,30 +125,35 @@ struct mqtt_config MqttConfig = {};
 
 const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
-const struct gpio_dt_spec External3v3Pin =
-    GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), external3v3_gpios);
-
 void wlab_init(void) {
     if (!device_is_ready(Sht3xDev)) {
-        LOG_ERR("Device %s is not ready\n", Sht3xDev->name);
+        LOG_ERR("Device %s is not ready", Sht3xDev->name);
     }
+
     nvs_data_wlab_pub_period_get(&PublishPeriodSec);
     PublishPeriodSec *= INT64_C(60);   // conver to seconds
     nvs_data_wlab_device_id_get(&DevieId);
     nvs_data_mqtt_config_get(&MqttConfig);
+
     LOG_INF("PublishPeriodSec %" PRIi64, PublishPeriodSec);
     LOG_INF("DevieId %" PRIX64, DevieId);
     LOG_INF("MqttConfig.broker <%s>", MqttConfig.broker);
     LOG_INF("MqttConfig.port <%u>", MqttConfig.port);
 
-    if (!device_is_ready(External3v3Pin.port)) {
-        LOG_ERR("External3v3Pin enable not ready");
-    }
+    gpio_status_led_init();
+    gpio_status_led_set_state(0);
 
-    gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
     gsm_modem_init();
+    gpio_user_btn_init();
+    adc_battery_vol_init();
 
+    int32_t startup_try = 0;
     while (true) {
+        if (startup_try > 0) {
+            wlab_startup_failed_led_scene();
+        }
+
+        startup_try++;
         if (!gsm_modem_test()) {
             LOG_ERR("No communication with modem");
             continue;
@@ -140,6 +191,7 @@ void wlab_init(void) {
 
         // all done sucessfully, put modem into sleep mode
         gsm_modem_sleep();
+        wlab_startup_succ_led_scene();
         break;
     }
 
@@ -211,6 +263,7 @@ DONE:
 void wlab_proc(void) {
     struct sensor_value temp, hum;
     int16_t i_temp, i_humidity;
+    int32_t batt_milliv;
 
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
     if (0 == sensor_rc) {
@@ -220,16 +273,26 @@ void wlab_proc(void) {
         i_temp = temp.val1 * 10 + temp.val2 / 100000;
         i_humidity = hum.val1 * 10 + hum.val2 / 100000;
         LOG_INF("SHT3XD: %d Cel ; %d %%RH", i_temp, i_humidity);
+        wlab_sensor_succ_led_scene();
     } else {
         LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
+        wlab_sensor_failed_led_scene();
     }
 
-    int64_t ts = wlab_ts_utc_get();
+    batt_milliv = adc_battery_vol_get_milliv();
+    LOG_INF("Battery voltage: %d[mv]", batt_milliv);
+    // Temporary instead of humidity, send battery voltage
+    i_humidity = (batt_milliv / 10) % 100;
+
+    int64_t ts = wlab_timestamp_get();
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
-
         if (TempBuffer.cnt > 0) {
-            wlab_publish();
+            if (wlab_publish()) {
+                wlab_publish_succ_led_scene();
+            } else {
+                wlab_publish_failed_led_scene();
+            }
         } else {
             // Device not configured or sensor problem
         }
@@ -251,7 +314,7 @@ void wlab_proc(void) {
         wlab_buffer_commit(&HumBuffer, i_humidity, ts);
     }
 
-    k_sleep(K_MSEC(20 * 1000));   // read sample every 20sec
+    k_sleep(K_MSEC(10 * 1000));   // read sample every 20sec
 }
 
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample) {

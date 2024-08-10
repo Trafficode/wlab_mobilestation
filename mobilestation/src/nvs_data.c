@@ -44,7 +44,7 @@ void nvs_data_init(void) {
     ret = nvs_read(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len);
     if (ret > 0) { /* item was found, show it */
         LOG_INF("boot counter: %d", boot_counter);
-    } else { /* item was not found, add it */
+    } else {       /* item was not found, add it */
         LOG_INF("No boot counter found, adding it at id %d", NVS_ID_BOOT_COUNT);
     }
     boot_counter++;
@@ -129,7 +129,7 @@ void nvs_data_wlab_pub_period_get(int64_t *pub_period) {
         nvs_read(&Fs, NVS_ID_WLAB_PUB_PERIOD, pub_period, wlab_pub_period_len);
     if (ret <= 0) {
         LOG_WRN("No wlab publish period found, default");
-        memset(pub_period, WLAB_DEFAULT_PUB_PERIOD_SEC, wlab_pub_period_len);
+        memset(pub_period, WLAB_DEFAULT_PUB_PERIOD_MIN, wlab_pub_period_len);
         if (wlab_pub_period_len == nvs_write(&Fs, NVS_ID_WLAB_PUB_PERIOD,
                                              pub_period, wlab_pub_period_len)) {
             LOG_DBG("Wlab device id clear success");
