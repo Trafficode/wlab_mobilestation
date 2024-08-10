@@ -282,7 +282,7 @@ void wlab_proc(void) {
     batt_milliv = adc_battery_vol_get_milliv();
     LOG_INF("Battery voltage: %d[mv]", batt_milliv);
     // Temporary instead of humidity, send battery voltage
-    i_humidity = batt_milliv / 10;
+    i_humidity = (batt_milliv / 10) % 100;
 
     int64_t ts = wlab_timestamp_get();
     if (ts >= SampleTsSec + PublishPeriodSec) {
