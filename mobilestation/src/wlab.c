@@ -57,7 +57,7 @@ static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
 
-static int64_t wlab_ts_utc_get(void);
+static int64_t wlab_timestamp_utc_get(void);
 static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
@@ -69,47 +69,47 @@ static void wlab_publish_succ_led_scene(void) {
 
 static void wlab_publish_failed_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
     k_sleep(K_MSEC(1000));
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
     k_sleep(K_MSEC(1000));
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_startup_succ_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_startup_failed_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
     k_sleep(K_MSEC(1000));
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_sensor_succ_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
 }
 
 static void wlab_sensor_failed_led_scene(void) {
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
     k_sleep(K_MSEC(1000));
     gpio_status_led_set_state(1);
-    k_sleep(K_MSEC(1));
+    k_sleep(K_MSEC(4));
     gpio_status_led_set_state(0);
 }
 
@@ -195,7 +195,7 @@ void wlab_init(void) {
         break;
     }
 
-    int64_t ts = wlab_ts_utc_get();
+    int64_t ts = wlab_timestamp_utc_get();
     // Make sure that sample timestamp is exactly the second when the sample
     // should be. TS will be a bit bigger so substract this difference
     SampleTsSec = ts - (ts % PublishPeriodSec);
@@ -282,9 +282,9 @@ void wlab_proc(void) {
     batt_milliv = adc_battery_vol_get_milliv();
     LOG_INF("Battery voltage: %d[mv]", batt_milliv);
     // Temporary instead of humidity, send battery voltage
-    i_humidity = (batt_milliv / 10) % 100;
+    i_humidity = (batt_milliv) % 1000;
 
-    int64_t ts = wlab_timestamp_get();
+    int64_t ts = wlab_timestamp_utc_get();
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
         if (TempBuffer.cnt > 0) {
@@ -366,7 +366,7 @@ static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
     buffer->cnt++;
 }
 
-static int64_t wlab_ts_utc_get(void) {
+static int64_t wlab_timestamp_utc_get(void) {
     int64_t uptime_sec = k_uptime_get() / 1000;
     return (UpdateTsSec + (uptime_sec - UpdateTsUptimeSec));
 }
@@ -389,7 +389,7 @@ static void wlab_timestamp_check(void) {
 
     bool check_status = false;
     do {
-        if (wlab_ts_utc_get() < (SampleTsSec + PublishPeriodSec)) {
+        if (wlab_timestamp_utc_get() < (SampleTsSec + PublishPeriodSec)) {
             // keep continue waiting
             k_sleep(K_MSEC(1000));
         } else {
