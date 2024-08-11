@@ -42,9 +42,11 @@ void nvs_data_init(void) {
     uint32_t boot_counter = UINT32_C(0);
     size_t area_len = sizeof(boot_counter);
     ret = nvs_read(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len);
-    if (ret > 0) { /* item was found, show it */
+    if (ret > 0) {
+        // Item was found, show it
         LOG_INF("boot counter: %d", boot_counter);
-    } else {       /* item was not found, add it */
+    } else {
+        // Item was not found, add it
         LOG_INF("No boot counter found, adding it at id %d", NVS_ID_BOOT_COUNT);
     }
     boot_counter++;
@@ -55,6 +57,38 @@ void nvs_data_init(void) {
     } else {
         LOG_ERR("Save boot counter %d err", boot_counter);
     }
+}
+
+void nvs_data_apn_config_get(struct apn_config *apnconf) {
+    __ASSERT((apnconf != NULL), "Null pointer passed");
+    size_t apn_config_len = sizeof(struct apn_config);
+
+    int ret = nvs_read(&Fs, NVS_ID_APN_CONFIG, apnconf, apn_config_len);
+    if (ret <= 0) {
+        LOG_WRN("No apn config found, clear...");
+        memset(apnconf, 0x00, apn_config_len);
+        strcpy(apnconf->apn, "TM");
+        if (apn_config_len ==
+            nvs_write(&Fs, NVS_ID_APN_CONFIG, apnconf, apn_config_len)) {
+            LOG_DBG("APN config cleared");
+        } else {
+            LOG_ERR("APN config clear failed");
+        }
+    }
+}
+
+int nvs_data_apn_config_set(struct apn_config *apnconf) {
+    __ASSERT((apnconf != NULL), "Null pointer passed");
+    int ret = 0;
+    size_t apn_config_len = sizeof(struct apn_config);
+    if (apn_config_len ==
+        nvs_write(&Fs, NVS_ID_APN_CONFIG, apnconf, apn_config_len)) {
+        LOG_DBG("APN config set success");
+    } else {
+        LOG_ERR("APN config set failed");
+        ret = -EIO;
+    }
+    return (ret);
 }
 
 void nvs_data_mqtt_config_get(struct mqtt_config *mqttconf) {

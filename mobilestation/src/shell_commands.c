@@ -83,16 +83,20 @@ static int cmd_pconfig(const struct shell *shell, size_t argc, char *argv[]) {
     struct mqtt_config mqttcfg = {};
     uint64_t device_id = 0;
     uint64_t pub_period = 0;
+    struct apn_config apn = {};
 
     nvs_data_mqtt_config_get(&mqttcfg);
     nvs_data_wlab_device_id_get(&device_id);
     nvs_data_wlab_pub_period_get(&pub_period);
+    nvs_data_apn_config_get(&apn);
 
     shell_fprintf(shell, SHELL_NORMAL, "mqtt_broker: <%s>\n", mqttcfg.broker);
     shell_fprintf(shell, SHELL_NORMAL, "mqtt_port: %u\n", mqttcfg.port);
     shell_fprintf(shell, SHELL_NORMAL, "device_id: %" PRIX64 "\n", device_id);
     shell_fprintf(shell, SHELL_NORMAL, "publish_period: %" PRIi64 " [mins]\n",
                   pub_period);
+    shell_fprintf(shell, SHELL_NORMAL, "apn %s, user %s, password %s\n",
+                  apn.apn, apn.user, apn.password);
     return (0);
 }
 
@@ -119,6 +123,31 @@ static int cmd_at(const struct shell *shell, size_t argc, char *argv[]) {
     return (0);
 }
 
+// apn apn your_user your_password
+static int cmd_apn(const struct shell *shell, size_t argc, char *argv[]) {
+    struct apn_config apn;
+    if (2 == argc) {
+        memset(apn.password, '\0', NVS_ID_APN_MAX_LEN);
+        memset(apn.user, '\0', NVS_ID_APN_MAX_LEN);
+        strcpy(apn.apn, argv[1]);
+        nvs_data_apn_config_set(&apn);
+    } else if (3 == argc) {
+        memset(apn.password, '\0', NVS_ID_APN_MAX_LEN);
+        strcpy(apn.apn, argv[1]);
+        strcpy(apn.user, argv[2]);
+        nvs_data_apn_config_set(&apn);
+    } else if (4 == argc) {
+        strcpy(apn.apn, argv[1]);
+        strcpy(apn.user, argv[2]);
+        strcpy(apn.password, argv[3]);
+        nvs_data_apn_config_set(&apn);
+    } else {
+        shell_fprintf(shell, SHELL_NORMAL, "\tBad command usage!");
+    }
+
+    return (0);
+}
+
 // test
 static int cmd_test(const struct shell *shell, size_t argc, char *argv[]) {
     shell_fprintf(shell, SHELL_NORMAL, "Test command enter...");
@@ -132,6 +161,13 @@ SHELL_CMD_REGISTER(test, NULL,
                    "Usage:                      \n"
                    "$ test                        ",
                    cmd_test);
+
+SHELL_CMD_REGISTER(apn, NULL,
+                   "Set APN configuration       \n"
+                   "Usage:                      \n"
+                   "$ apn <name> <user> <pass>    "
+                   "$ apn TM                      ",
+                   cmd_apn);
 
 SHELL_CMD_REGISTER(at, NULL,
                    "Send command to modem       \n"

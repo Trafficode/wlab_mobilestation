@@ -17,6 +17,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "nvs_data.h"
 #include "periphery/gpio_sim800l.h"
 #include "periphery/uart_gsm.h"
 
@@ -267,7 +268,7 @@ DONE:
     return (res);
 }
 
-bool gsm_modem_net_setup(void) {
+bool gsm_modem_net_setup(struct apn_config *apn) {
     bool res = false;
 
     LOG_INF("gsm_modem_net_setup start");
@@ -311,8 +312,13 @@ bool gsm_modem_net_setup(void) {
     }
 
     // # AT+CSTT="TM","",""    Set APN's
+    // AT+CSTT="your_apn","your_user","your_password"
     // OK
-    char at_cstt[] = "\nAT+CSTT=\"TM\",\"\",\"\"\n";
+    char at_cstt[32 + 3 * NVS_ID_APN_MAX_LEN];
+    sprintf(at_cstt, "\nAT+CSTT=\"%s\",\"%s\",\"%s\"\n", apn->apn, apn->user,
+            apn->password);
+    // char at_cstt[] = "\nAT+CSTT=\"TM\",\"\",\"\"\n";
+    LOG_INF("> %s", at_cstt + 1);
     if (!gsm_modem_cmd_base(at_cstt, sizeof(at_cstt), "OK", 100)) {
         goto DONE;
     }
@@ -320,15 +326,27 @@ bool gsm_modem_net_setup(void) {
     // # AT+CIICR              Bring up wireless connection
     // OK
     char at_ciicr[] = "\nAT+CIICR\n";
+    LOG_INF("> %s", at_ciicr + 1);
     if (!gsm_modem_cmd_base(at_ciicr, sizeof(at_ciicr), "OK", 4000)) {
         goto DONE;
     }
 
-    // # AT+CREG?              Check gprs conection expected response:
-    // home: "+CREG: 0,1", roaming: "+CREG: 0,5"
-    char at_creg[] = "\nAT+CREG?\n";
-    if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg), "+CREG: 0,", 2000)) {
-        goto DONE;
+    int cmd_try = 0;
+    for (cmd_try = 0; cmd_try < 3; cmd_try++) {
+        // # AT+CREG?              Check gprs conection expected response:
+        // home: "+CREG: 0,1", roaming: "+CREG: 0,5"
+        char at_creg[] = "\nAT+CREG?\n";
+        LOG_INF("> %s", at_creg + 1);
+        if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg), "+CREG: 0,", 2000)) {
+            uart_gsm_rx_clear();
+            k_sleep(K_MSEC(1000));
+        } else {
+            break;   // Success
+        }
+    }
+
+    if (3 == cmd_try) {
+        goto DONE;   // CREG failed
     }
 
     // # AT+CIFSR              Get IP address (expecting a non-empty response)

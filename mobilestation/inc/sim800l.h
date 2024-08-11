@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "nvs_data.h"
+
 /**
  * @brief gsm_modem_init
  * Initilise neccessary staff.
@@ -53,10 +55,11 @@ bool gsm_modem_get_ts_utc(int64_t *ts);
  * @brief gsm_modem_net_setup
  * Setup gsm connection with broker. Doing this action Ip address is assigned and
  * TCP connection can be established.
+ * @param apn Provide pointer to structure apn_config 
  * @return true Success
  * @return false Failed
  */
-bool gsm_modem_net_setup(void);
+bool gsm_modem_net_setup(struct apn_config *apn);
 
 /**
  * @brief gsm_modem_mqtt_connect

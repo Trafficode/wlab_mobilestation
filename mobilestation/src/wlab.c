@@ -122,6 +122,7 @@ static int64_t UpdateTsSec;
 static int64_t UpdateTsUptimeSec;
 static uint64_t DevieId;
 struct mqtt_config MqttConfig = {};
+struct apn_config ApnConfig = {};
 
 const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
@@ -131,14 +132,17 @@ void wlab_init(void) {
     }
 
     nvs_data_wlab_pub_period_get(&PublishPeriodSec);
-    PublishPeriodSec *= INT64_C(60);   // conver to seconds
+    PublishPeriodSec *= INT64_C(60);   // Conver to seconds
     nvs_data_wlab_device_id_get(&DevieId);
     nvs_data_mqtt_config_get(&MqttConfig);
+    nvs_data_apn_config_get(&ApnConfig);
 
     LOG_INF("PublishPeriodSec %" PRIi64, PublishPeriodSec);
     LOG_INF("DevieId %" PRIX64, DevieId);
     LOG_INF("MqttConfig.broker <%s>", MqttConfig.broker);
     LOG_INF("MqttConfig.port <%u>", MqttConfig.port);
+    LOG_INF("ApnConfig apn <%s>, user <%s>, password <%s>", ApnConfig.apn,
+            ApnConfig.user, ApnConfig.password);
 
     gpio_status_led_init();
     gpio_status_led_set_state(0);
@@ -174,12 +178,7 @@ void wlab_init(void) {
             continue;
         }
 
-        if (!gsm_modem_net_setup()) {
-            LOG_ERR("Network up failed");
-            continue;
-        }
-
-        if (!gsm_modem_net_setup()) {
+        if (!gsm_modem_net_setup(&ApnConfig)) {
             LOG_ERR("Network up failed");
             continue;
         }
@@ -189,7 +188,7 @@ void wlab_init(void) {
             continue;
         }
 
-        // all done sucessfully, put modem into sleep mode
+        // All done sucessfully, put modem into sleep mode
         gsm_modem_sleep();
         wlab_startup_succ_led_scene();
         break;
@@ -201,63 +200,6 @@ void wlab_init(void) {
     SampleTsSec = ts - (ts % PublishPeriodSec);
     wlab_buffer_init(&TempBuffer, SampleTsSec);
     wlab_buffer_init(&HumBuffer, SampleTsSec);
-}
-
-static bool wlab_publish(void) {
-    bool res = false;
-    struct wlab_db_bin sample_bin = {};
-
-    if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
-        (0 == DevieId)) {
-        LOG_ERR("Device not configured");
-        goto DONE;
-    }
-
-    wlab_bin_package_prepare(&sample_bin);
-
-    if (!gsm_modem_wakeup()) {
-        LOG_ERR("Failed to wakeup modem");
-        goto DONE;
-    }
-
-    if (!gsm_modem_test()) {
-        LOG_ERR("No communication with modem");
-        goto DONE;
-    }
-
-    if (!gsm_modem_config()) {
-        LOG_ERR("Configure modem failed");
-        goto DONE;
-    }
-
-    if (!gsm_modem_net_setup()) {
-        LOG_ERR("Network up failed");
-        goto DONE;
-    }
-
-    if (!wlab_timestamp_sync()) {
-        LOG_ERR("Time sync failed");
-        goto DONE;
-    }
-
-    if (!gsm_modem_mqtt_connect(MqttConfig.broker, MqttConfig.port)) {
-        LOG_ERR("Connect to MQTT failed");
-        goto DONE;
-    }
-
-    if (!gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
-                                (uint8_t *)&sample_bin,
-                                sizeof(struct wlab_db_bin))) {
-        LOG_ERR("Publish to MQTT failed");
-        gsm_modem_mqtt_close();
-        goto DONE;
-    }
-
-    gsm_modem_mqtt_close();
-    res = true;
-DONE:
-    gsm_modem_sleep();   // shuld it be repeated and repeated?
-    return (res);
 }
 
 void wlab_proc(void) {
@@ -315,6 +257,63 @@ void wlab_proc(void) {
     }
 
     k_sleep(K_MSEC(10 * 1000));   // read sample every 20sec
+}
+
+static bool wlab_publish(void) {
+    bool res = false;
+    struct wlab_db_bin sample_bin = {};
+
+    if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
+        (0 == DevieId)) {
+        LOG_ERR("Device not configured");
+        goto DONE;
+    }
+
+    wlab_bin_package_prepare(&sample_bin);
+
+    if (!gsm_modem_wakeup()) {
+        LOG_ERR("Failed to wakeup modem");
+        goto DONE;
+    }
+
+    if (!gsm_modem_test()) {
+        LOG_ERR("No communication with modem");
+        goto DONE;
+    }
+
+    if (!gsm_modem_config()) {
+        LOG_ERR("Configure modem failed");
+        goto DONE;
+    }
+
+    if (!gsm_modem_net_setup(&ApnConfig)) {
+        LOG_ERR("Network up failed");
+        goto DONE;
+    }
+
+    if (!wlab_timestamp_sync()) {
+        LOG_ERR("Time sync failed");
+        goto DONE;
+    }
+
+    if (!gsm_modem_mqtt_connect(MqttConfig.broker, MqttConfig.port)) {
+        LOG_ERR("Connect to MQTT failed");
+        goto DONE;
+    }
+
+    if (!gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
+                                (uint8_t *)&sample_bin,
+                                sizeof(struct wlab_db_bin))) {
+        LOG_ERR("Publish to MQTT failed");
+        gsm_modem_mqtt_close();
+        goto DONE;
+    }
+
+    gsm_modem_mqtt_close();
+    res = true;
+DONE:
+    gsm_modem_sleep();   // shuld it be repeated and repeated?
+    return (res);
 }
 
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample) {
