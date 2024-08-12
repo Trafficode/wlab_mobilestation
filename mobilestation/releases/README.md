@@ -20,3 +20,26 @@
 * Terminal commands to store APN configuration
 * BLE firmware update
 
+# v2_ncs2_7_0
+
+## DONE
+* Handle LED indicator
+  * Startup network init success: Quick led blink
+  * Startup network init failed: Two led blinks with 1 second interval
+  * Sensor read success: Quick led blink(heart beat every 20 seconds)
+  * Sensor read failed: Two led blinks with 1 second interval
+  * Publish sample to broker success: No led action
+  * Publish sample to broker failed: Three led blinks with 1 second interval
+* Reading and sending battery voltage value(temporary is send as Humidity)
+* Terminal commands to store APN configuration
+* Comunication with sim800l improved, redundant '\0' removed from AT commands
+
+## TODO
+* Storing not properly published samples to flash memory and resending
+* BLE firmware update
+* Power saving modes
+  * Extend publish period to 1h
+  * Disable publishing till batter voltage to low
+  * Cuting SHT3x sensor from power
+* User button for future use
+* Send battery voltage as additional publish data
