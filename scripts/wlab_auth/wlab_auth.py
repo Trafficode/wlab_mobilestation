@@ -21,9 +21,7 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected successfully to the broker")
         client.publish(ConfigData["mqtt"]["auth_topic"], json.dumps(ConfigData["auth"]))
-        time.sleep(1.0)
         print("Authenticated...")
-        exit(0)
     else:
         print(f"Connect failed with code {rc}")
 
