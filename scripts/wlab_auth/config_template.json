@@ -1,0 +1,19 @@
+{
+    "mqtt": {
+        "broker": "11.22.33.44",
+        "port": 1883,
+        "auth_topic": "/auth/topic"
+    },
+    "auth": {
+        "timezone": "Europe/Warsaw",
+        "longitude": 0.111,
+        "latitude": 0.111,
+        "serie": {
+            "Temperature": 1,
+            "Humidity": 2
+        },
+        "name": "StationName",
+        "description": "SensorType",
+        "uid": "001122334455"
+    }
+}

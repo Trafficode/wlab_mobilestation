@@ -9,6 +9,11 @@
 * Timestamp properly read from GSM network and converted to UTC
 * Publishing samples to WLAB server, properly presented on application side
 
+## Configuration
+  * deviceid 1100203040AB       // Set DeviceId
+  * pubp 10                     // Publish period in seconds
+  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+  
 ## TODO
 * Storing not properly published samples to flash memory and resending
 * Handle LED indicator
@@ -34,7 +39,15 @@
 * Terminal commands to store APN configuration
 * Comunication with sim800l improved, redundant '\0' removed from AT commands
 
+## Configuration
+  * deviceid 1100203040AB       // Set DeviceId
+  * pubp 10                     // Publish period in seconds
+  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+  * apn internet user pass      // Configure APN
+  * apn internet
+  
 ## TODO
+* Python script to authorize station
 * Storing not properly published samples to flash memory and resending
 * BLE firmware update
 * Power saving modes

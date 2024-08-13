@@ -4,9 +4,9 @@ import datetime
 import pytz
 
 # Define the MQTT broker details
-broker = "194.42.111.14"
+broker = "191.41.112.15"
 port = 1883
-topic = "/wlabdb/bin"
+topic = "/wlabdb/test"
 
 def get_local_tz_offset_sec():
     # Get the current local time
