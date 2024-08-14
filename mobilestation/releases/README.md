@@ -48,6 +48,8 @@
   
 ## TODO
 * Python script to authorize station
+* MCU power management
+  * 1.4 mA mcu current consumption, cause of energy loses on converting 3.6v to 3.3v
 * Storing not properly published samples to flash memory and resending
 * BLE firmware update
 * Power saving modes

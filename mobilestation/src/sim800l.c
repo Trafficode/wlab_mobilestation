@@ -236,20 +236,30 @@ DONE:
 }
 
 bool gsm_modem_wakeup(void) {
-    bool res = false;
-
     // AT+CFUN=0    Minimum functionality. Lowest power consumption, RF disabled, 0.796mA.
     // AT+CFUN=1    Full functionality (default).
     // AT+CFUN=4    Flight mode (disable RF function).
     // OK
-    char at_wakeup[] = "\nAT+CFUN=1\n";
-    if (!gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup) - 1, "OK", 8000)) {
-        goto DONE;
+    // char at_wakeup[] = "\nAT+CFUN=1\n";
+    // if (!gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup) - 1, "OK", 8000)) {
+    //     goto DONE;
+    // }
+
+    char at[] = "\nAT\n";
+    uart_gsm_rx_clear();
+    uart_gsm_send(at, sizeof(at) - 1);
+
+    int try = 0;
+    for (try = 0; try < 16; try++) {
+        char at_wakeup[] = "\nAT+CSCLK=0\n";
+        if (gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup) - 1, "OK", 1000)) {
+            break;
+        } else {
+            LOG_WRN("Failed to wakeup %d/16", try);
+        }
     }
 
-    res = true;
-DONE:
-    return (res);
+    return (try < 16) ? true : false;
 }
 
 bool gsm_modem_sleep(void) {
@@ -259,7 +269,8 @@ bool gsm_modem_sleep(void) {
     // AT+CFUN=1    Full functionality (default).
     // AT+CFUN=4    Flight mode (disable RF function).
     // OK
-    char at_sleep[] = "\nAT+CFUN=0\n";
+    // char at_sleep[] = "\nAT+CFUN=0\n";
+    char at_sleep[] = "\nAT+CSCLK=2\n";
     if (!gsm_modem_cmd_base(at_sleep, sizeof(at_sleep) - 1, "OK", 1000)) {
         goto DONE;
     }
@@ -397,9 +408,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';    // Protocol name
-    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;   // Connect flags (Clean session)
+    send_data[7] = 'T';     // Protocol name
+    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;    // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;

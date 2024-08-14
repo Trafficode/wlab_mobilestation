@@ -20,6 +20,7 @@ void gpio_ext3v3_init(void) {
     }
 
     gpio_pin_configure_dt(&External3v3Pin, GPIO_OUTPUT_HIGH);
+    gpio_ext3v3_enable();
 }
 
 void gpio_ext3v3_enable(void) {

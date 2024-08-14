@@ -150,6 +150,7 @@ void wlab_init(void) {
     gsm_modem_init();
     gpio_user_btn_init();
     adc_battery_vol_init();
+    gpio_ext3v3_init();   // Enable external 3v3 by default
 
     int32_t startup_try = 0;
     while (true) {

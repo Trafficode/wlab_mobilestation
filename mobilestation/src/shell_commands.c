@@ -131,16 +131,23 @@ static int cmd_apn(const struct shell *shell, size_t argc, char *argv[]) {
         memset(apn.user, '\0', NVS_ID_APN_MAX_LEN);
         strcpy(apn.apn, argv[1]);
         nvs_data_apn_config_set(&apn);
+        shell_fprintf(shell, SHELL_NORMAL, "apn: %s\n", apn.apn);
+        shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
     } else if (3 == argc) {
         memset(apn.password, '\0', NVS_ID_APN_MAX_LEN);
         strcpy(apn.apn, argv[1]);
         strcpy(apn.user, argv[2]);
         nvs_data_apn_config_set(&apn);
+        shell_fprintf(shell, SHELL_NORMAL, "apn: %s %s\n", apn.apn, apn.user);
+        shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
     } else if (4 == argc) {
         strcpy(apn.apn, argv[1]);
         strcpy(apn.user, argv[2]);
         strcpy(apn.password, argv[3]);
         nvs_data_apn_config_set(&apn);
+        shell_fprintf(shell, SHELL_NORMAL, "apn: %s %s %s\n", apn.apn, apn.user,
+                      apn.password);
+        shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
     } else {
         shell_fprintf(shell, SHELL_NORMAL, "\tBad command usage!");
     }
