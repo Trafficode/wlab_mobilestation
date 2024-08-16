@@ -58,3 +58,26 @@
   * Cuting SHT3x sensor from power
 * User button for future use
 * Send battery voltage as additional publish data
+
+# v3_ncs2_7_0
+
+## DONE
+* SIM800l entering to sleep mode fixed. Power consumption of SIM800l in sleep
+mode is ~1mA. MCU and the rest of hardware consume ~1.4mA. 
+
+## Configuration
+  * deviceid 1100203040AB       // Set DeviceId
+  * pubp 10                     // Publish period in seconds
+  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+  * apn internet user pass      // Configure APN
+  * apn internet
+  
+## TODO
+* BLE firmware update
+* Storing not properly published samples to flash memory and resending
+* Power saving modes
+  * Extend publish period to 1h
+  * Disable publishing till batter voltage to low
+  * Cuting SHT3x sensor from power
+* User button for future use
+* Send battery voltage as additional publish data
