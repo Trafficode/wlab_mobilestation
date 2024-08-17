@@ -9,8 +9,7 @@
 // VERSION 1, NCS 2.5.3
 // VERSION 2, NCS 2.7.0
 // VERSION 3, NCS 2.7.0
-// VERSION 4, NCS 2.7.0
-#define FIRMWARE_VERSION (4)
+#define FIRMWARE_VERSION (3)
 
 #endif /* VERSION_H_ */
 /* ---------------------------------------------------------------------------
