@@ -81,3 +81,35 @@ mode is ~1mA. MCU and the rest of hardware consume ~1.4mA.
   * Cuting SHT3x sensor from power
 * User button for future use
 * Send battery voltage as additional publish data
+
+
+# v4_ncs2_7_0
+
+## DONE
+* BLE adv enabled for 20 seconds since start. If not connected, disable and
+  operate normaly
+* BLE firmware update, custom .pem key added(CMakeLists.txt)
+* Configuration over BLE(NUS), implemented commands:
+  * pubp 10                     // Publish period in seconds
+  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+  * apn internet user pass      // Configure APN
+  * apn internet
+  * pconfig
+  * help
+* Extended parition for user non-volatile data
+
+## TODO
+* Storing not properly published samples to flash memory and resending
+* Power saving modes
+  * Extend publish period to 1h
+  * Disable publishing till batter voltage to low
+  * Cuting SHT3x sensor from power
+* User button for future use
+* Send battery voltage as additional publish data
+
+## Configuration
+  * deviceid 1100203040AB       // Set DeviceId
+  * pubp 10                     // Publish period in seconds
+  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+  * apn internet user pass      // Configure APN
+  * apn internet

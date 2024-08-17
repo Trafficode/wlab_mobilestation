@@ -5,6 +5,9 @@ project(mobilestation)
 
 target_include_directories(app PRIVATE inc)
 
+# python3 /root/ncs/bootloader/mcuboot/scripts/imgtool.py keygen -t ecdsa-p256 -k wlabapp.pem
+set(mcuboot_CONFIG_BOOT_SIGNATURE_KEY_FILE \"${CMAKE_CURRENT_SOURCE_DIR}/wlabapp.pem\")
+
 target_sources(app PRIVATE 
     src/periphery/uart_gsm.c
     src/periphery/gpio_sim800l.c

@@ -92,13 +92,13 @@ static void ble_worker_proc(void *, void *, void *) {
     char mqttconf[] = "mqttconf";
     char pubp[] = "pubp";
     char help[] = "help";
-    size_t answer_len = 0;
 
     while (true) {
         if (0 != k_sem_take(&NusReceivedSem, K_MSEC(16 * 1000))) {
             continue;
         }
 
+        size_t answer_len = 0;
         if (!memcmp(NusReceivedBuf, reboot, sizeof(reboot) - 1)) {
             // Reboot device
             sys_reboot(SYS_REBOOT_COLD);
@@ -108,6 +108,14 @@ static void ble_worker_proc(void *, void *, void *) {
                 NusAnswerBuf + answer_len, "Firmware: v%d Zephyr: %u.%u.%u\n",
                 FIRMWARE_VERSION, SYS_KERNEL_VER_MAJOR(ver),
                 SYS_KERNEL_VER_MINOR(ver), SYS_KERNEL_VER_PATCHLEVEL(ver));
+            answer_len +=
+                sprintf(NusAnswerBuf + answer_len, "pubp <minutes>\n");
+            answer_len += sprintf(NusAnswerBuf + answer_len,
+                                  "mqttconf <broker_ip> <port>\n");
+            answer_len += sprintf(NusAnswerBuf + answer_len,
+                                  "apn <name> <user> <pass>\napn <name>\n");
+            answer_len += sprintf(NusAnswerBuf + answer_len, "pconfig\n");
+            answer_len += sprintf(NusAnswerBuf + answer_len, "help\n");
         } else if (!memcmp(NusReceivedBuf, pubp, sizeof(pubp) - 1)) {
             uint64_t pub_period = 0;
             uint32_t pubp_value = 0;

@@ -1,2 +1,3 @@
 mobilestation/build*/
 scripts/wlab_auth/config.json
+*.pem
