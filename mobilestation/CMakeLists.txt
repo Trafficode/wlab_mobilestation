@@ -17,4 +17,5 @@ target_sources(app PRIVATE
     src/shell_commands.c
     src/sim800l.c
     src/wlab.c
+    src/ble_worker.c
 )

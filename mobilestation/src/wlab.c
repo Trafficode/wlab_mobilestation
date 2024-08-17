@@ -144,14 +144,6 @@ void wlab_init(void) {
     LOG_INF("ApnConfig apn <%s>, user <%s>, password <%s>", ApnConfig.apn,
             ApnConfig.user, ApnConfig.password);
 
-    gpio_status_led_init();
-    gpio_status_led_set_state(0);
-
-    gsm_modem_init();
-    gpio_user_btn_init();
-    adc_battery_vol_init();
-    gpio_ext3v3_init();   // Enable external 3v3 by default
-
     int32_t startup_try = 0;
     while (true) {
         if (startup_try > 0) {

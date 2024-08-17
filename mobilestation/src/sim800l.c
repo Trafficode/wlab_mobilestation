@@ -29,6 +29,13 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 void gsm_modem_init(void) {
     gpio_sim800l_init();
     uart_gsm_init();
+
+    if (gsm_modem_test()) {
+        LOG_INF("Push modem into sleep mode");
+        gsm_modem_sleep();
+    } else {
+        LOG_ERR("Modem doesn't react to AT command");
+    }
 }
 
 bool gsm_modem_test(void) {
