@@ -51,6 +51,7 @@
   * apn internet
   * pconfig
   * help
+* Sim800l network up improved
 * Extended parition for user non-volatile data
 
 
