@@ -1,29 +1,34 @@
 # Configuration
-  * deviceid 1100203040AB       // Set DeviceId
-  * pubp 10                     // Publish period in seconds
-  * mqttconf 10.190.1.20 1883   // Mqtt broker access
-  * apn internet user pass      // Configure APN
-  * apn internet
+* deviceid 1100203040AB       // Set DeviceId
+* pubp 10                     // Publish period in seconds
+* mqttconf 10.190.1.20 1883   // Mqtt broker access
+* apn internet user pass      // Configure APN
+* apn internet
 
 
 # Configuration over BLE(NUS)
-  * pubp 10                     // Publish period in seconds
-  * mqttconf 10.190.1.20 1883   // Mqtt broker access
-  * apn internet user pass      // Configure APN
-  * apn internet
-  * pconfig
-  * help
+* pubp 10                     // Publish period in seconds
+* mqttconf 10.190.1.20 1883   // Mqtt broker access
+* apn internet user pass      // Configure APN
+* apn internet
+* pconfig
+* help
 
 
 # LED scenes
-  * BLE enabled at startup: Fast blinking for 20 seconds - don't stop once connection established
-  * Startup network init success: Quick led blink
-  * Startup network init failed: Two led blinks with 1 second interval
-  * Sensor read success: Quick led blink(heart beat every 20 seconds)
-  * Sensor read failed: Two led blinks with 1 second interval
-  * Publish sample to broker success: No led action
-  * Publish sample to broker failed: Three led blinks with 1 second interval
+* BLE enabled at startup: Fast blinking for 20 seconds - don't stop once connection established
+* Startup network init success: Quick led blink
+* Startup network init failed: Two led blinks with 1 second interval
+* Sensor read success: Quick led blink(heart beat every 20 seconds)
+* Sensor read failed: Two led blinks with 1 second interval
+* Publish sample to broker success: No led action
+* Publish sample to broker failed: Three led blinks with 1 second interval
 
+# Release process
+* Add update and merged files to releases directory
+* Write down description into releases/README.md file
+* Make up version in version.h
+* Create tag as version name
 
 # TODO
 * Set device id using BLE NUS
@@ -89,9 +94,9 @@ mode is ~1mA. MCU and the rest of hardware consume ~1.4mA.
 * Publishing samples to WLAB server, properly presented on application side
 
 ## Configuration
-  * deviceid 1100203040AB       // Set DeviceId
-  * pubp 10                     // Publish period in seconds
-  * mqttconf 10.190.1.20 1883   // Mqtt broker access
+* deviceid 1100203040AB       // Set DeviceId
+* pubp 10                     // Publish period in seconds
+* mqttconf 10.190.1.20 1883   // Mqtt broker access
 
 
 
