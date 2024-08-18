@@ -156,11 +156,6 @@ void wlab_init(void) {
             continue;
         }
 
-        if (!gsm_modem_config()) {
-            LOG_ERR("Configure modem failed");
-            continue;
-        }
-
         if (!gsm_modem_reset()) {
             LOG_ERR("Reset modem failed");
             continue;
@@ -168,6 +163,11 @@ void wlab_init(void) {
 
         if (!gsm_modem_test()) {
             LOG_ERR("No communication with modem");
+            continue;
+        }
+
+        if (!gsm_modem_config()) {
+            LOG_ERR("Configure modem failed");
             continue;
         }
 

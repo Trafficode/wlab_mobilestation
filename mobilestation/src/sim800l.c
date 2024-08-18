@@ -284,7 +284,7 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
         // # AT+CGATT=1            Attach to GPRS service
         // OK
         char at_cgatt[] = "\nAT+CGATT=1\n";
-        if (!gsm_modem_cmd_base(at_cgatt, sizeof(at_cgatt) - 1, "OK", 1000)) {
+        if (!gsm_modem_cmd_base(at_cgatt, sizeof(at_cgatt) - 1, "OK", 2000)) {
             k_sleep(K_MSEC(1000));
         } else {
             break;   // success
@@ -298,6 +298,7 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // # AT+CIPSHUT            Reset IP session
     // SHUT OK
     char at_cipshut[] = "\nAT+CIPSHUT\n";
+    LOG_INF("> %s", at_cipshut + 1);
     if (!gsm_modem_cmd_base(at_cipshut, sizeof(at_cipshut) - 1, "SHUT OK",
                             2000)) {
         goto DONE;
@@ -306,15 +307,17 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // # AT+CIPSTATUS          Check IP status
     // STATE: IP INITIAL
     char at_cipstatus[] = "\nAT+CIPSTATUS\n";
+    LOG_INF("> %s", at_cipstatus + 1);
     if (!gsm_modem_cmd_base(at_cipstatus, sizeof(at_cipstatus) - 1,
-                            "STATE: IP INITIAL", 100)) {
+                            "STATE: IP INITIAL", 2000)) {
         goto DONE;
     }
 
     // # AT+CIPMUX=0           Set single connection mode
     // OK
     char at_cipmux[] = "\nAT+CIPMUX=0\n";
-    if (!gsm_modem_cmd_base(at_cipmux, sizeof(at_cipmux) - 1, "OK", 100)) {
+    LOG_INF("> %s", at_cipmux + 1);
+    if (!gsm_modem_cmd_base(at_cipmux, sizeof(at_cipmux) - 1, "OK", 2000)) {
         goto DONE;
     }
 
@@ -325,7 +328,7 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     int at_cstt_len = sprintf(at_cstt, "\nAT+CSTT=\"%s\",\"%s\",\"%s\"\n",
                               apn->apn, apn->user, apn->password);
     LOG_INF("> %s", at_cstt + 1);
-    if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 100)) {
+    if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 1000)) {
         goto DONE;
     }
 
@@ -340,8 +343,17 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // # AT+CREG?              Check gprs conection expected response:
     // home: "+CREG: 0,1", roaming: "+CREG: 0,5"
     char at_creg[] = "\nAT+CREG?\n";
+    uint8_t creg_try = 0;
     LOG_INF("> %s", at_creg + 1);
-    if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg) - 1, "+CREG: 0,", 2000)) {
+    for (creg_try = 0; creg_try < 4; creg_try++) {
+        if (gsm_modem_cmd_base(at_creg, sizeof(at_creg) - 1, "+CREG: 0,",
+                               2000)) {
+            break;
+        }
+        k_sleep(K_MSEC(1000));
+    }
+
+    if (4 == creg_try) {
         goto DONE;
     }
 

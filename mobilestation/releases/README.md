@@ -16,6 +16,7 @@
 
 
 # LED scenes
+  * BLE enabled at startup: Fast blinking for 20 seconds - don't stop once connection established
   * Startup network init success: Quick led blink
   * Startup network init failed: Two led blinks with 1 second interval
   * Sensor read success: Quick led blink(heart beat every 20 seconds)
@@ -25,7 +26,10 @@
 
 
 # TODO
+* Set device id using BLE NUS
 * Storing not properly published samples to flash memory and resending
+* Sim800l commands builtin retries
+* Why modem is blinking
 * Power saving modes
   * Extend publish period to 1h
   * Disable publishing till batter voltage to low
