@@ -31,9 +31,11 @@
 * Create tag as version name
 
 # TODO
+* Verify cpu usage
 * Set device id using BLE NUS
 * Storing not properly published samples to flash memory and resending
-* Sim800l commands builtin retries
+* Sim800l commands: builtin retries
+* Enable DC/DC instead of LDO
 * Why modem is blinking
 * Power saving modes
   * Extend publish period to 1h
