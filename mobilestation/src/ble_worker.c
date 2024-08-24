@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
@@ -92,9 +93,10 @@ static void ble_worker_proc(void *, void *, void *) {
     char mqttconf[] = "mqttconf";
     char pubp[] = "pubp";
     char help[] = "help";
+    char deviceid[] = "deviceid";
 
     while (true) {
-        if (0 != k_sem_take(&NusReceivedSem, K_MSEC(16 * 1000))) {
+        if (0 != k_sem_take(&NusReceivedSem, K_FOREVER)) {
             continue;
         }
 
@@ -102,6 +104,18 @@ static void ble_worker_proc(void *, void *, void *) {
         if (!memcmp(NusReceivedBuf, reboot, sizeof(reboot) - 1)) {
             // Reboot device
             sys_reboot(SYS_REBOOT_COLD);
+        } else if (!memcmp(NusReceivedBuf, deviceid, sizeof(deviceid) - 1)) {
+            uint64_t device_id =
+                strtoull(NusReceivedBuf + sizeof(deviceid) + 1, NULL, 16);
+            if (UINT64_C(0) != device_id) {
+                device_id = sys_cpu_to_le64(device_id);
+                nvs_data_wlab_device_id_set(&device_id);
+                answer_len += sprintf(NusAnswerBuf + answer_len,
+                                      "Use \"pconfig\" to verify\n");
+            } else {
+                answer_len += sprintf(NusAnswerBuf + answer_len,
+                                      "Failed! Use \"help\"\n");
+            }
         } else if (!memcmp(NusReceivedBuf, help, sizeof(help) - 1)) {
             uint32_t ver = sys_kernel_version_get();
             answer_len += sprintf(
