@@ -11,6 +11,7 @@
 * mqttconf 10.190.1.20 1883   // Mqtt broker access
 * apn internet user pass      // Configure APN
 * apn internet
+* deviceid 0A112233ABFF       // Set device id
 * pconfig
 * help
 
@@ -32,7 +33,6 @@
 
 # TODO
 * Verify cpu usage
-* Set device id using BLE NUS
 * Storing not properly published samples to flash memory and resending
 * Sim800l commands: builtin retries
 * Enable DC/DC instead of LDO
@@ -44,6 +44,10 @@
 * User button for future use
 * Send battery voltage as additional publish data
 
+# v5_ncs2_7_0
+
+## DONE
+* Set device id using BLE NUS
 
 # v4_ncs2_7_0
 
