@@ -19,6 +19,9 @@ LOG_MODULE_REGISTER(NVSD, LOG_LEVEL_DBG);
 
 static struct nvs_fs Fs = {0};
 
+static uint16_t PushedIn = 0;
+static uint16_t PulledOut = 0;
+
 void nvs_data_init(void) {
     int ret = 0;
     struct flash_pages_info info = {0};
@@ -43,13 +46,29 @@ void nvs_data_init(void) {
     size_t area_len = sizeof(boot_counter);
     ret = nvs_read(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len);
     if (ret > 0) {
-        // Item was found, show it
+        // Item found, show it
         LOG_INF("boot counter: %d", boot_counter);
     } else {
-        // Item was not found, add it
+        // Item not found, add it
         LOG_INF("No boot counter found, adding it at id %d", NVS_ID_BOOT_COUNT);
     }
     boot_counter++;
+
+    area_len = sizeof(uint16_t);
+    ret = nvs_read(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn, area_len);
+    if (0 == ret) {
+        PushedIn = NVS_ID_SAMPLE_CONT_START;
+        nvs_write(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn, area_len);
+    }
+
+    ret = nvs_read(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, area_len);
+    if (0 == ret) {
+        PulledOut = NVS_ID_SAMPLE_CONT_START;
+        nvs_write(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, area_len);
+    }
+
+    LOG_INF("PUSHED_IN %u", PushedIn);
+    LOG_INF("PULLED_OUT %u", PulledOut);
 
     if (area_len ==
         nvs_write(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len)) {
@@ -57,6 +76,56 @@ void nvs_data_init(void) {
     } else {
         LOG_ERR("Save boot counter %d err", boot_counter);
     }
+}
+
+bool nvs_storage_sample_push(void *sample, size_t len) {
+    bool res = false;
+    uint8_t buffer[NVS_SAMPLE_SIZE];
+
+    LOG_INF("Push to arch, PushedIn %u PulledOut %u", PushedIn, PulledOut);
+    if (PushedIn == (PulledOut - 1) ||
+        (PushedIn == NVS_ID_SAMPLE_CONT_END && (0 == PulledOut))) {
+        LOG_ERR("No free space to push sample in");
+    } else {
+        uint16_t push_idx = (PushedIn + 1) % NVS_SAMPLE_MAX_NUM;
+        memset(buffer, 0x00, NVS_SAMPLE_SIZE);
+        memcpy(buffer, sample, len);
+        if (NVS_SAMPLE_SIZE ==
+            nvs_write(&Fs, push_idx, buffer, NVS_SAMPLE_SIZE)) {
+            PushedIn = push_idx;
+            nvs_write(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn,
+                      sizeof(uint16_t));
+            res = true;
+        }
+    }
+
+    return (res);
+}
+
+void nvs_storage_sample_mark_as_sent(uint16_t pull_idx) {
+    PulledOut = pull_idx;
+    nvs_write(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, sizeof(uint16_t));
+}
+
+bool nvs_storage_sample_pull(void *sample, size_t len, uint16_t *pull_idx) {
+    bool res = false;
+    uint8_t buffer[NVS_SAMPLE_SIZE];
+
+    if (PushedIn != PulledOut) {
+        uint16_t next_idx = (PulledOut + 1) % NVS_SAMPLE_MAX_NUM;
+        int ret = nvs_read(&Fs, next_idx, buffer, NVS_SAMPLE_SIZE);
+        if (ret <= 0) {
+            LOG_ERR("Failed to read sample %d", ret);
+        } else {
+            memcpy(sample, buffer, len);
+            *pull_idx = next_idx;
+            res = true;
+        }
+    } else {
+        LOG_INF("No samples waiting to send");
+    }
+
+    return (res);
 }
 
 void nvs_data_apn_config_get(struct apn_config *apnconf) {

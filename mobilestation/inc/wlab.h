@@ -8,6 +8,7 @@
 
 #define WLAB_DEFAULT_PUB_PERIOD_MIN INT64_C(10)
 #define WLAB_DEFAULT_SAMPLE_TOPIC   ("/wlabdb/bin")
+#define WLAB_DEFAULT_ARCH_PUB_NUM   UINT8_C(4)
 
 /**
  * @brief wlab_init

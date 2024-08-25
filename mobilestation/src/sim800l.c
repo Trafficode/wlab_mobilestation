@@ -21,6 +21,8 @@
 #include "periphery/gpio_sim800l.h"
 #include "periphery/uart_gsm.h"
 
+#define GSM_MODEM_WAKEUP_ATTEMPS (8)
+
 LOG_MODULE_REGISTER(SIM800L, LOG_LEVEL_DBG);
 
 static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
@@ -248,16 +250,16 @@ bool gsm_modem_wakeup(void) {
     uart_gsm_send(at, sizeof(at) - 1);
 
     int try = 0;
-    for (try = 0; try < 16; try++) {
+    for (try = 0; try < GSM_MODEM_WAKEUP_ATTEMPS; try++) {
         char at_wakeup[] = "\nAT+CSCLK=0\n";
         if (gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup) - 1, "OK", 1000)) {
             break;
         } else {
-            LOG_WRN("Failed to wakeup %d/16", try);
+            LOG_WRN("Failed to wakeup %d/%u", try, GSM_MODEM_WAKEUP_ATTEMPS);
         }
     }
 
-    return (try < 16) ? true : false;
+    return (try < GSM_MODEM_WAKEUP_ATTEMPS) ? true : false;
 }
 
 bool gsm_modem_sleep(void) {

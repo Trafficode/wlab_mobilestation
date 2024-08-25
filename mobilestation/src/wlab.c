@@ -62,6 +62,7 @@ static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
+static void wlab_publish_arch_samples(uint8_t resend_num);
 
 static void wlab_publish_succ_led_scene(void) {
     // No aciton
@@ -252,6 +253,42 @@ void wlab_proc(void) {
     k_sleep(K_MSEC(10 * 1000));   // read sample every 20sec
 }
 
+static void wlab_publish_arch_samples(uint8_t resend_num) {
+    uint8_t sample_buff[NVS_SAMPLE_SIZE];
+    uint16_t pull_idx = 0;
+    size_t sample_len = 0;
+    bool rc = 0;
+
+    for (uint8_t resend_cnt = 0; resend_cnt < resend_num; resend_cnt++) {
+        rc = nvs_storage_sample_pull(sample_buff, NVS_SAMPLE_SIZE, &pull_idx);
+        if (false == rc) {
+            // Arch empty
+            LOG_INF("Arch empty");
+            break;
+        }
+
+        if (0x01 == sample_buff[0]) {
+            // Structure version 0x01
+            sample_len = sizeof(struct wlab_db_bin);
+        } else {
+            LOG_ERR("Bad structure version read %u", sample_buff[0]);
+            break;
+        }
+
+        LOG_INF("Structure version %u, len %u", sample_buff[0], sample_len);
+
+        rc = gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
+                                    (uint8_t *)sample_buff, sample_len);
+        if (false == rc) {
+            LOG_ERR("Resend sample failed...");
+            break;
+        } else {
+            LOG_INF("Mark samle idx %u as sent", pull_idx);
+            nvs_storage_sample_mark_as_sent(pull_idx);
+        }
+    }
+}
+
 static bool wlab_publish(void) {
     bool res = false;
     struct wlab_db_bin sample_bin = {};
@@ -300,11 +337,16 @@ static bool wlab_publish(void) {
         LOG_ERR("Publish to MQTT failed");
         gsm_modem_mqtt_close();
         goto DONE;
+    } else {
+        wlab_publish_arch_samples(WLAB_DEFAULT_ARCH_PUB_NUM);
     }
 
     gsm_modem_mqtt_close();
     res = true;
 DONE:
+    if ((false == res) && (sample_bin.version != 0)) {
+        nvs_storage_sample_push(&sample_bin, sizeof(struct wlab_db_bin));
+    }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
     return (res);
 }

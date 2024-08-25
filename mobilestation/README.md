@@ -34,7 +34,9 @@
 # TODO
 * Verify cpu usage
 * Storing not properly published samples to flash memory and resending
-* Sim800l commands: builtin retries
+* Sim800l commands: builtin retries, some command returns error from time to time
+  * AT+CSTT="internet","","" 
+  * AT+CIPSTATUS
 * Enable DC/DC instead of LDO
 * Why modem is blinking
 * Power saving modes
@@ -98,11 +100,6 @@ mode is ~1mA. MCU and the rest of hardware consume ~1.4mA.
 * Terminal commands for MQTT and WLAB configuration
 * Timestamp properly read from GSM network and converted to UTC
 * Publishing samples to WLAB server, properly presented on application side
-
-## Configuration
-* deviceid 1100203040AB       // Set DeviceId
-* pubp 10                     // Publish period in seconds
-* mqttconf 10.190.1.20 1883   // Mqtt broker access
 
 
 
