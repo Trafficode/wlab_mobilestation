@@ -22,10 +22,14 @@
 #define NVS_ID_WLAB_DEVICE_ID    UINT16_C(3)
 #define NVS_ID_WLAB_PUB_PERIOD   UINT16_C(4)
 #define NVS_ID_APN_CONFIG        UINT16_C(5)
-#define NVS_ID_SAMPLE_PUSHED_IN  UINT16_C(6)
-#define NVS_ID_SAMPLE_PULLED_OUT UINT16_C(7)
+#define NVS_ID_SAMPLE_CONT_IDX   UINT16_C(10)
 #define NVS_ID_SAMPLE_CONT_START UINT16_C(100)
 #define NVS_ID_SAMPLE_CONT_END   UINT16_C(100 + NVS_SAMPLE_MAX_NUM - 1)
+
+struct arch_idx {
+    uint32_t pushed_idx;
+    uint32_t pulled_idx;
+};
 
 struct mqtt_config {
     char broker[CONFIG_BUFF_MAX_STRING_LEN];

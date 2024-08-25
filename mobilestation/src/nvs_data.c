@@ -19,8 +19,7 @@ LOG_MODULE_REGISTER(NVSD, LOG_LEVEL_DBG);
 
 static struct nvs_fs Fs = {0};
 
-static uint16_t PushedIn = 0;
-static uint16_t PulledOut = 0;
+static struct arch_idx ArchIdx = {0, 0};
 
 void nvs_data_init(void) {
     int ret = 0;
@@ -54,21 +53,16 @@ void nvs_data_init(void) {
     }
     boot_counter++;
 
-    area_len = sizeof(uint16_t);
-    ret = nvs_read(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn, area_len);
+    area_len = sizeof(struct arch_idx);
+    ret = nvs_read(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
     if (0 == ret) {
-        PushedIn = NVS_ID_SAMPLE_CONT_START;
-        nvs_write(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn, area_len);
+        ArchIdx.pushed_idx = NVS_ID_SAMPLE_CONT_START;
+        ArchIdx.pulled_idx = NVS_ID_SAMPLE_CONT_START;
+        nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
     }
 
-    ret = nvs_read(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, area_len);
-    if (0 == ret) {
-        PulledOut = NVS_ID_SAMPLE_CONT_START;
-        nvs_write(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, area_len);
-    }
-
-    LOG_INF("PUSHED_IN %u", PushedIn);
-    LOG_INF("PULLED_OUT %u", PulledOut);
+    LOG_INF("PUSHED_IN %u", ArchIdx.pushed_idx);
+    LOG_INF("PULLED_OUT %u", ArchIdx.pulled_idx);
 
     if (area_len ==
         nvs_write(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len)) {
@@ -82,18 +76,20 @@ bool nvs_storage_sample_push(void *sample, size_t len) {
     bool res = false;
     uint8_t buffer[NVS_SAMPLE_SIZE];
 
-    LOG_INF("Push to arch, PushedIn %u PulledOut %u", PushedIn, PulledOut);
-    if (PushedIn == (PulledOut - 1) ||
-        (PushedIn == NVS_ID_SAMPLE_CONT_END && (0 == PulledOut))) {
+    LOG_INF("Push to arch, PushedIn %u PulledOut %u", ArchIdx.pushed_idx,
+            ArchIdx.pulled_idx);
+    if (ArchIdx.pushed_idx == (ArchIdx.pulled_idx - 1) ||
+        (ArchIdx.pushed_idx == NVS_ID_SAMPLE_CONT_END &&
+         (0 == ArchIdx.pulled_idx))) {
         LOG_ERR("No free space to push sample in");
     } else {
-        uint16_t push_idx = (PushedIn + 1) % NVS_SAMPLE_MAX_NUM;
+        uint16_t push_idx = (ArchIdx.pushed_idx + 1) % NVS_SAMPLE_MAX_NUM;
         memset(buffer, 0x00, NVS_SAMPLE_SIZE);
         memcpy(buffer, sample, len);
         if (NVS_SAMPLE_SIZE ==
             nvs_write(&Fs, push_idx, buffer, NVS_SAMPLE_SIZE)) {
-            PushedIn = push_idx;
-            nvs_write(&Fs, NVS_ID_SAMPLE_PUSHED_IN, &PushedIn,
+            ArchIdx.pushed_idx = push_idx;
+            nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx.pushed_idx,
                       sizeof(uint16_t));
             res = true;
         }
@@ -103,16 +99,16 @@ bool nvs_storage_sample_push(void *sample, size_t len) {
 }
 
 void nvs_storage_sample_mark_as_sent(uint16_t pull_idx) {
-    PulledOut = pull_idx;
-    nvs_write(&Fs, NVS_ID_SAMPLE_PULLED_OUT, &PulledOut, sizeof(uint16_t));
+    ArchIdx.pulled_idx = pull_idx;
+    nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, sizeof(uint16_t));
 }
 
 bool nvs_storage_sample_pull(void *sample, size_t len, uint16_t *pull_idx) {
     bool res = false;
     uint8_t buffer[NVS_SAMPLE_SIZE];
 
-    if (PushedIn != PulledOut) {
-        uint16_t next_idx = (PulledOut + 1) % NVS_SAMPLE_MAX_NUM;
+    if (ArchIdx.pushed_idx != ArchIdx.pulled_idx) {
+        uint16_t next_idx = (ArchIdx.pulled_idx + 1) % NVS_SAMPLE_MAX_NUM;
         int ret = nvs_read(&Fs, next_idx, buffer, NVS_SAMPLE_SIZE);
         if (ret <= 0) {
             LOG_ERR("Failed to read sample %d", ret);
