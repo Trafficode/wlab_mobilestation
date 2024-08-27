@@ -156,20 +156,23 @@ bool gsm_modem_config(void) {
     // # AT                  Echo OFF
     // "OK"
     char at[] = "\nAT\n";
+    LOG_INF("> %s", at + 1);
     if (!gsm_modem_cmd_base(at, sizeof(at) - 1, "OK", 1000)) {
         goto DONE;
     }
 
-    // // # AT&F                  Factory settings
-    // // "OK"
-    // char at_f[] = "\rAT&F\r";
-    // if (!gsm_modem_cmd_base(at_f, sizeof(at_f)-1, "OK", 1000)) {
-    //     goto DONE;
-    // }
+    // # AT&F                  Factory settings
+    // "OK"
+    char at_f[] = "\rAT&F\r";
+    LOG_INF("> %s", at_f + 1);
+    if (!gsm_modem_cmd_base(at_f, sizeof(at_f) - 1, "OK", 1000)) {
+        goto DONE;
+    }
 
     // # ATE0                  Echo OFF
     // "OK"
     char at_e0[] = "\nATE0\n";
+    LOG_INF("> %s", at_e0 + 1);
     if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0) - 1, "OK", 100)) {
         goto DONE;
     }
@@ -219,6 +222,7 @@ bool gsm_modem_config(void) {
     // AT+CLTS=1  Enable the network time synchronization
     // OK
     char at_clts[] = "\nAT+CLTS=1\n";
+    LOG_INF("> %s", at_clts + 1);
     if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts) - 1, "OK", 1000)) {
         goto DONE;
     }
@@ -226,6 +230,7 @@ bool gsm_modem_config(void) {
     // AT+CNETLIGHT=0  Disable blinking led
     // OK
     char at_cnetlight[] = "\nAT+CNETLIGHT=0\n";
+    LOG_INF("> %s", at_cnetlight + 1);
     if (!gsm_modem_cmd_base(at_cnetlight, sizeof(at_cnetlight) - 1, "OK",
                             1000)) {
         goto DONE;
@@ -234,6 +239,7 @@ bool gsm_modem_config(void) {
     // AT&W  Save configuration
     // OK
     char at_w[] = "\nAT&W\n";
+    LOG_INF("> %s", at_w + 1);
     if (!gsm_modem_cmd_base(at_w, sizeof(at_w) - 1, "OK", 1000)) {
         goto DONE;
     }
@@ -416,9 +422,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[4] = 'M';
     send_data[5] = 'Q';
     send_data[6] = 'T';
-    send_data[7] = 'T';    // Protocol name
-    send_data[8] = 0x04;   // Protocol level (4 for MQTT v3.1.1)
-    send_data[9] = 0x02;   // Connect flags (Clean session)
+    send_data[7] = 'T';     // Protocol name
+    send_data[8] = 0x04;    // Protocol level (4 for MQTT v3.1.1)
+    send_data[9] = 0x02;    // Connect flags (Clean session)
     send_data[10] = 0x00;
     send_data[11] = 0x3C;   // Keep - alive timer(60 seconds)
     send_data[12] = 0x00;
