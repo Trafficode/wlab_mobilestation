@@ -153,7 +153,7 @@ bool gsm_modem_config(void) {
 
     LOG_INF("gsm_modem_config start");
 
-    // # AT                  Echo OFF
+    // # AT                  Test communication
     // "OK"
     char at[] = "\nAT\n";
     LOG_INF("> %s", at + 1);
