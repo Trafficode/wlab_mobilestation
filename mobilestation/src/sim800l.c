@@ -26,7 +26,64 @@
 LOG_MODULE_REGISTER(SIM800L, LOG_LEVEL_DBG);
 
 static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
-                               int32_t timeout);
+                               int32_t timeout) {
+    bool res = false;
+    char read_line[64];
+
+    uart_gsm_rx_clear();
+    uart_gsm_send(data, len);
+
+    int64_t start_ts = k_uptime_get();
+    int64_t rl_timeout = (int64_t)timeout;
+    do {
+        if (uart_gsm_read_line(read_line, sizeof(read_line), timeout)) {
+            LOG_INF("< %s/%s", read_line, expected);
+            if (strstr(read_line, expected) != NULL) {
+                res = true;
+                break;
+            } else if (strstr(read_line, "ERROR") != NULL) {
+                break;
+            } else if (strstr(read_line, "SEND FAIL") != NULL) {
+                break;
+            } else if (strstr(read_line, "CLOSED") != NULL) {
+                break;
+            } else {
+                // No action, unexpected line
+            }
+        }
+    } while ((start_ts + rl_timeout) > k_uptime_get());
+
+    return (res);
+}
+
+static bool gsm_modem_cmd_base_str(uint8_t *str_cmd, const char *expected,
+                                   int32_t timeout, uint8_t tries,
+                                   uint32_t delay_between) {
+    uint8_t try = 0;
+    LOG_INF("> %s", str_cmd);
+
+    char cmd_buffer[128];
+    size_t str_cmd_len = snprintf(cmd_buffer, 64, "\n%s\n", str_cmd);
+    for (try = 0; try < tries; try++) {
+        if (gsm_modem_cmd_base(str_cmd, str_cmd_len, expected, timeout)) {
+            break;
+        } else {
+            LOG_WRN("Cmd %s try %u/%u failed", str_cmd, try + 1, tries);
+            if (delay_between > 0) {
+                k_sleep(K_MSEC(delay_between));
+            }
+        }
+    }
+
+    bool res = (try < tries) ? true : false;
+    if (false == res) {
+        LOG_ERR("Cmd %s failed", str_cmd);
+    } else {
+        LOG_INF("Cmd %s success", str_cmd);
+    }
+
+    return (res);
+}
 
 void gsm_modem_init(void) {
     gpio_sim800l_init();
@@ -41,36 +98,11 @@ void gsm_modem_init(void) {
 }
 
 bool gsm_modem_test(void) {
-    int try = 0;
-    bool res = false;
-    char at[] = "\nAT\n";
-    LOG_INF("gsm_modem_test start");
-
-    for (try = 0; try < 24; try++) {
-        if (gsm_modem_cmd_base(at, sizeof(at) - 1, "OK", 1000)) {
-            res = true;
-            break;
-        }
-    }
-
-    LOG_INF("... gsm_modem_test done res %u", res);
-    return (res);
+    return gsm_modem_cmd_base_str("AT", "OK", 1000, 16, 100);
 }
 
 bool gsm_modem_reset(void) {
-    bool res = false;
-    LOG_INF("gsm_modem_reset start");
-    // AT+CFUN=1,1  Restart module
-    // OK
-    char at_cfun11[] = "\nAT+CFUN=1,1\n";
-    if (!gsm_modem_cmd_base(at_cfun11, sizeof(at_cfun11) - 1, "OK", 1000)) {
-        goto DONE;
-    }
-
-    res = true;
-DONE:
-    LOG_INF("... gsm_modem_reset done res %u", res);
-    return (res);
+    return gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 1000, 3, 100);
 }
 
 bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout) {
@@ -112,129 +144,38 @@ DONE:
     return (res);
 }
 
-static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
-                               int32_t timeout) {
-    bool res = false;
-    char read_line[64];
-
-    uart_gsm_rx_clear();
-    uart_gsm_send(data, len);
-    // LOG_INF("> %s", data + 1);
-
-    int64_t start_ts = k_uptime_get();
-    int64_t rl_timeout = (int64_t)timeout;
-    do {
-        if (uart_gsm_read_line(read_line, sizeof(read_line), timeout)) {
-            LOG_INF("< %s/%s", read_line, expected);
-            if (NULL != strstr(read_line, expected)) {
-                res = true;
-                break;
-            } else if (NULL != strstr(read_line, "ERROR")) {
-                break;
-            } else if (NULL != strstr(read_line, "SEND FAIL")) {
-                break;
-            } else if (NULL != strstr(read_line, "CLOSED")) {
-                break;
-            } else {
-                // TODO Test!
-                // int64_t elapsed = k_uptime_get() - start_ts;
-                // if (0 < rl_timeout - elapsed) {
-                //     rl_timeout -= elapsed;
-                // }
-            }
-        }
-    } while ((start_ts + rl_timeout) > k_uptime_get());
-
-    return (res);
-}
-
 bool gsm_modem_config(void) {
     bool res = false;
 
     LOG_INF("gsm_modem_config start");
 
-    // # AT                  Echo OFF
+    // # AT&F                  Factory settings
     // "OK"
-    char at[] = "\nAT\n";
-    if (!gsm_modem_cmd_base(at, sizeof(at) - 1, "OK", 1000)) {
+    if (!gsm_modem_cmd_base_str("AT&F", "OK", 250, 2, 100)) {
         goto DONE;
     }
-
-    // // # AT&F                  Factory settings
-    // // "OK"
-    // char at_f[] = "\rAT&F\r";
-    // if (!gsm_modem_cmd_base(at_f, sizeof(at_f)-1, "OK", 1000)) {
-    //     goto DONE;
-    // }
 
     // # ATE0                  Echo OFF
     // "OK"
-    char at_e0[] = "\nATE0\n";
-    if (!gsm_modem_cmd_base(at_e0, sizeof(at_e0) - 1, "OK", 100)) {
+    if (!gsm_modem_cmd_base_str("ATE0", "OK", 250, 2, 100)) {
         goto DONE;
     }
 
-    // AT+CIURC=0   # Disable "Call Ready" message
-    // OK
-    // char at_ciurc[] = "\nAT+CIURC=0\n";
-    // if (!gsm_modem_cmd_base(at_ciurc, sizeof(at_ciurc)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
-    // AT+CNMI=0,0,0,0,0  # Disable SMS notifications
-    // OK
-    // char at_cnmi[] = "\nAT+CNMI=0,0,0,0,0\n";
-    // if (!gsm_modem_cmd_base(at_cnmi, sizeof(at_cnmi)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
-    // AT+CLIP=0    # Disable incoming call indications
-    // OK
-    // char at_clip[] = "\nAT+CLIP=0\n";
-    // if (!gsm_modem_cmd_base(at_clip, sizeof(at_clip)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
-    // AT+COLP=0    # Disable connected line identification
-    // OK
-    // char at_colp[] = "\rAT+COLP=0\n";
-    // if (!gsm_modem_cmd_base(at_colp, sizeof(at_colp)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
-    // AT+CREG=0    # Disable unsolicited network registration information
-    // OK
-    // char at_creg[] = "\nAT+CREG=0\n";
-    // if (!gsm_modem_cmd_base(at_creg, sizeof(at_creg)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
-    // // AT+CGREG=0   # Disable unsolicited GPRS network status
-    // // OK
-    // char at_cgreg[] = "\nAT+CGREG=0\n";
-    // if (!gsm_modem_cmd_base(at_cgreg, sizeof(at_cgreg)-1, "OK", 100)) {
-    //     goto DONE;
-    // }
-
     // AT+CLTS=1  Enable the network time synchronization
     // OK
-    char at_clts[] = "\nAT+CLTS=1\n";
-    if (!gsm_modem_cmd_base(at_clts, sizeof(at_clts) - 1, "OK", 1000)) {
+    if (!gsm_modem_cmd_base_str("AT+CLTS=1", "OK", 250, 2, 100)) {
         goto DONE;
     }
 
     // AT+CNETLIGHT=0  Disable blinking led
     // OK
-    char at_cnetlight[] = "\nAT+CNETLIGHT=0\n";
-    if (!gsm_modem_cmd_base(at_cnetlight, sizeof(at_cnetlight) - 1, "OK",
-                            1000)) {
+    if (!gsm_modem_cmd_base_str("AT+CNETLIGHT=0", "OK", 250, 2, 100)) {
         goto DONE;
     }
 
     // AT&W  Save configuration
     // OK
-    char at_w[] = "\nAT&W\n";
-    if (!gsm_modem_cmd_base(at_w, sizeof(at_w) - 1, "OK", 1000)) {
+    if (!gsm_modem_cmd_base_str("AT&W", "OK", 250, 2, 100)) {
         goto DONE;
     }
 
@@ -248,78 +189,42 @@ bool gsm_modem_wakeup(void) {
     char at[] = "\nAT\n";
     uart_gsm_rx_clear();
     uart_gsm_send(at, sizeof(at) - 1);
-
-    int try = 0;
-    for (try = 0; try < GSM_MODEM_WAKEUP_ATTEMPS; try++) {
-        char at_wakeup[] = "\nAT+CSCLK=0\n";
-        if (gsm_modem_cmd_base(at_wakeup, sizeof(at_wakeup) - 1, "OK", 1000)) {
-            break;
-        } else {
-            LOG_WRN("Failed to wakeup %d/%u", try, GSM_MODEM_WAKEUP_ATTEMPS);
-        }
-    }
-
-    return (try < GSM_MODEM_WAKEUP_ATTEMPS) ? true : false;
+    return gsm_modem_cmd_base_str("AT+CSCLK=0", "OK", 1000,
+                                  GSM_MODEM_WAKEUP_ATTEMPS, 100);
 }
 
 bool gsm_modem_sleep(void) {
-    bool res = false;
-
-    // Entering into sleep mode, power consumption should be ~1mA
-    char at_sleep[] = "\nAT+CSCLK=2\n";
-    if (!gsm_modem_cmd_base(at_sleep, sizeof(at_sleep) - 1, "OK", 1000)) {
-        goto DONE;
-    }
-
-    res = true;
-DONE:
-    return (res);
+    return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 250, 2, 100);
 }
 
 bool gsm_modem_net_setup(struct apn_config *apn) {
     bool res = false;
 
     LOG_INF("gsm_modem_net_setup start");
-    int try = 0;
 
-    for (try = 0; try < CONFIG_SIM800L_NET_WAIT_MAX_SEC; try++) {
-        // # AT+CGATT=1            Attach to GPRS service
-        // OK
-        char at_cgatt[] = "\nAT+CGATT=1\n";
-        if (!gsm_modem_cmd_base(at_cgatt, sizeof(at_cgatt) - 1, "OK", 2000)) {
-            k_sleep(K_MSEC(1000));
-        } else {
-            break;   // success
-        }
-    }
-
-    if (CONFIG_SIM800L_NET_WAIT_MAX_SEC == try) {
-        goto DONE;   // Attach to network failed
+    // # AT+CGATT=1            Attach to GPRS service
+    // OK
+    if (!gsm_modem_cmd_base_str("AT+CGATT=1", "OK", 2000,
+                                CONFIG_SIM800L_NET_WAIT_MAX_SEC, 1000)) {
+        goto DONE;
     }
 
     // # AT+CIPSHUT            Reset IP session
     // SHUT OK
-    char at_cipshut[] = "\nAT+CIPSHUT\n";
-    LOG_INF("> %s", at_cipshut + 1);
-    if (!gsm_modem_cmd_base(at_cipshut, sizeof(at_cipshut) - 1, "SHUT OK",
-                            2000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIPSHUT", "SHUT OK", 2000, 2, 1000)) {
         goto DONE;
     }
 
     // # AT+CIPSTATUS          Check IP status
     // STATE: IP INITIAL
-    char at_cipstatus[] = "\nAT+CIPSTATUS\n";
-    LOG_INF("> %s", at_cipstatus + 1);
-    if (!gsm_modem_cmd_base(at_cipstatus, sizeof(at_cipstatus) - 1,
-                            "STATE: IP INITIAL", 2000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIPSTATUS", "STATE: IP INITIAL", 2000, 3,
+                                1000)) {
         goto DONE;
     }
 
     // # AT+CIPMUX=0           Set single connection mode
     // OK
-    char at_cipmux[] = "\nAT+CIPMUX=0\n";
-    LOG_INF("> %s", at_cipmux + 1);
-    if (!gsm_modem_cmd_base(at_cipmux, sizeof(at_cipmux) - 1, "OK", 2000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIPMUX=0", "OK", 2000, 2, 1000)) {
         goto DONE;
     }
 
@@ -327,35 +232,21 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // AT+CSTT="your_apn","your_user","your_password"
     // OK
     char at_cstt[32 + 3 * NVS_ID_APN_MAX_LEN];
-    int at_cstt_len = sprintf(at_cstt, "\nAT+CSTT=\"%s\",\"%s\",\"%s\"\n",
-                              apn->apn, apn->user, apn->password);
-    LOG_INF("> %s", at_cstt + 1);
+    int at_cstt_len = sprintf(at_cstt, "AT+CSTT=\"%s\",\"%s\",\"%s\"", apn->apn,
+                              apn->user, apn->password);
     if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 1000)) {
         goto DONE;
     }
 
     // # AT+CIICR              Bring up wireless connection
     // OK
-    char at_ciicr[] = "\nAT+CIICR\n";
-    LOG_INF("> %s", at_ciicr + 1);
-    if (!gsm_modem_cmd_base(at_ciicr, sizeof(at_ciicr) - 1, "OK", 4000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIICR", "OK", 4000, 3, 1000)) {
         goto DONE;
     }
 
     // # AT+CREG?              Check gprs conection expected response:
     // home: "+CREG: 0,1", roaming: "+CREG: 0,5"
-    char at_creg[] = "\nAT+CREG?\n";
-    uint8_t creg_try = 0;
-    LOG_INF("> %s", at_creg + 1);
-    for (creg_try = 0; creg_try < 4; creg_try++) {
-        if (gsm_modem_cmd_base(at_creg, sizeof(at_creg) - 1, "+CREG: 0,",
-                               2000)) {
-            break;
-        }
-        k_sleep(K_MSEC(1000));
-    }
-
-    if (4 == creg_try) {
+    if (!gsm_modem_cmd_base_str("AT+CREG?", "+CREG: 0,", 2000, 4, 1000)) {
         goto DONE;
     }
 
