@@ -30,6 +30,7 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
     bool res = false;
     char read_line[64];
 
+    // LOG_INF("data <%s>", data);
     uart_gsm_rx_clear();
     uart_gsm_send(data, len);
 
@@ -65,7 +66,7 @@ static bool gsm_modem_cmd_base_str(uint8_t *str_cmd, const char *expected,
     char cmd_buffer[128];
     size_t str_cmd_len = snprintf(cmd_buffer, 64, "\n%s\n", str_cmd);
     for (try = 0; try < tries; try++) {
-        if (gsm_modem_cmd_base(str_cmd, str_cmd_len, expected, timeout)) {
+        if (gsm_modem_cmd_base(cmd_buffer, str_cmd_len, expected, timeout)) {
             break;
         } else {
             LOG_WRN("Cmd %s try %u/%u failed", str_cmd, try + 1, tries);
@@ -105,43 +106,46 @@ bool gsm_modem_reset(void) {
     return gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 1000, 3, 100);
 }
 
-bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout) {
+bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
+                       uint8_t tries) {
     // AT+CIPSEND
     // 0a 3e 20 - "\n> "
     // data has to be ended with 0x1A
-    bool res = false;
+    uint8_t try = 0;
+    for (uint8_t try = 0; try < tries; try++) {
+        k_sleep(K_MSEC(1000));
+        uart_gsm_rx_clear();
 
-    uart_gsm_rx_clear();
+        char at_cipsend[] = "\nAT+CIPSEND\n";
+        LOG_INF("> %s", at_cipsend + 1);
+        uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
 
-    char at_cipsend[] = "\nAT+CIPSEND\n";
-    LOG_INF("> %s", at_cipsend + 1);
-    uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
-
-    int64_t start_ts = k_uptime_get();
-    uint8_t chr = 0;
-    do {
-        if (uart_gsm_getc(&chr, 10)) {
-            if ('>' == chr) {
-                break;
+        int64_t start_ts = k_uptime_get();
+        uint8_t chr = 0;
+        do {
+            if (uart_gsm_getc(&chr, 10)) {
+                if ('>' == chr) {
+                    break;
+                }
             }
+        } while ((start_ts + INT64_C(8 * 1000)) > k_uptime_get());
+
+        uart_gsm_rx_clear();
+
+        if (chr != '>') {
+            LOG_ERR("Read prompt failed");
+            continue;
         }
-    } while ((start_ts + INT64_C(8 * 1000)) > k_uptime_get());
 
-    uart_gsm_rx_clear();
+        if (!gsm_modem_cmd_base(data, len, "SEND OK", timeout)) {
+            LOG_ERR("No SEND OK answer");
+            continue;
+        }
 
-    if (chr != '>') {
-        LOG_ERR("Read prompt failed");
-        goto DONE;
+        break;
     }
 
-    if (!gsm_modem_cmd_base(data, len, "SEND OK", timeout)) {
-        LOG_ERR("No SEND OK answer");
-        goto DONE;
-    }
-
-    res = true;
-DONE:
-    return (res);
+    return (tries == try) ? false : true;
 }
 
 bool gsm_modem_config(void) {
@@ -151,31 +155,31 @@ bool gsm_modem_config(void) {
 
     // # AT&F                  Factory settings
     // "OK"
-    if (!gsm_modem_cmd_base_str("AT&F", "OK", 250, 2, 100)) {
+    if (!gsm_modem_cmd_base_str("AT&F", "OK", 1000, 4, 200)) {
         goto DONE;
     }
 
     // # ATE0                  Echo OFF
     // "OK"
-    if (!gsm_modem_cmd_base_str("ATE0", "OK", 250, 2, 100)) {
+    if (!gsm_modem_cmd_base_str("ATE0", "OK", 400, 2, 200)) {
         goto DONE;
     }
 
     // AT+CLTS=1  Enable the network time synchronization
     // OK
-    if (!gsm_modem_cmd_base_str("AT+CLTS=1", "OK", 250, 2, 100)) {
+    if (!gsm_modem_cmd_base_str("AT+CLTS=1", "OK", 400, 2, 200)) {
         goto DONE;
     }
 
     // AT+CNETLIGHT=0  Disable blinking led
     // OK
-    if (!gsm_modem_cmd_base_str("AT+CNETLIGHT=0", "OK", 250, 2, 100)) {
+    if (!gsm_modem_cmd_base_str("AT+CNETLIGHT=0", "OK", 400, 2, 200)) {
         goto DONE;
     }
 
     // AT&W  Save configuration
     // OK
-    if (!gsm_modem_cmd_base_str("AT&W", "OK", 250, 2, 100)) {
+    if (!gsm_modem_cmd_base_str("AT&W", "OK", 1000, 4, 200)) {
         goto DONE;
     }
 
@@ -194,7 +198,7 @@ bool gsm_modem_wakeup(void) {
 }
 
 bool gsm_modem_sleep(void) {
-    return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 250, 2, 100);
+    return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200);
 }
 
 bool gsm_modem_net_setup(struct apn_config *apn) {
@@ -211,20 +215,20 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
 
     // # AT+CIPSHUT            Reset IP session
     // SHUT OK
-    if (!gsm_modem_cmd_base_str("AT+CIPSHUT", "SHUT OK", 2000, 2, 1000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIPSHUT", "SHUT OK", 2000, 4, 1000)) {
         goto DONE;
     }
 
     // # AT+CIPSTATUS          Check IP status
     // STATE: IP INITIAL
-    if (!gsm_modem_cmd_base_str("AT+CIPSTATUS", "STATE: IP INITIAL", 2000, 3,
+    if (!gsm_modem_cmd_base_str("AT+CIPSTATUS", "STATE: IP INITIAL", 2000, 4,
                                 1000)) {
         goto DONE;
     }
 
     // # AT+CIPMUX=0           Set single connection mode
     // OK
-    if (!gsm_modem_cmd_base_str("AT+CIPMUX=0", "OK", 2000, 2, 1000)) {
+    if (!gsm_modem_cmd_base_str("AT+CIPMUX=0", "OK", 2000, 4, 1000)) {
         goto DONE;
     }
 
@@ -232,9 +236,15 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // AT+CSTT="your_apn","your_user","your_password"
     // OK
     char at_cstt[32 + 3 * NVS_ID_APN_MAX_LEN];
-    int at_cstt_len = sprintf(at_cstt, "AT+CSTT=\"%s\",\"%s\",\"%s\"", apn->apn,
-                              apn->user, apn->password);
-    if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 1000)) {
+    // int at_cstt_len = sprintf(at_cstt, "\nAT+CSTT=\"%s\",\"%s\",\"%s\"\n",
+    //                           apn->apn, apn->user, apn->password);
+    // if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 1000)) {
+    //     LOG_ERR("Set APN configuration failed");
+    //     goto DONE;
+    // }
+    sprintf(at_cstt, "AT+CSTT=\"%s\",\"%s\",\"%s\"", apn->apn, apn->user,
+            apn->password);
+    if (!gsm_modem_cmd_base_str(at_cstt, "OK", 1000, 4, 1000)) {
         goto DONE;
     }
 
@@ -274,6 +284,7 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
         }
 
         if ((start_ts + 4000) > k_uptime_get()) {
+            LOG_ERR("Get IP address failed");
             goto DONE;
         }
     } while (true);
@@ -291,14 +302,12 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     // OK
     // CONNECT OK
     char send_data[64];
-    size_t send_data_len;
-    send_data_len = sprintf(send_data, "\nAT+CIPSTART=\"TCP\",\"%s\",\"%u\"\n",
-                            domain, port);
-    LOG_INF("> %s", send_data + 1);
-    if (!gsm_modem_cmd_base(send_data, send_data_len, "CONNECT OK", 6000)) {
-        LOG_ERR("Cipstart failed");
+    sprintf(send_data, "AT+CIPSTART=\"TCP\",\"%s\",\"%u\"", domain, port);
+    if (!gsm_modem_cmd_base_str(send_data, "CONNECT OK", 16000, 3, 1000)) {
         goto DONE;
     }
+
+    k_sleep(K_MSEC(1000));   // Wait a bit before sending data to server
 
     send_data[0] = 0x10;   // MQTT CONNECT packet type
     send_data[1] = 0x0C;   // Remaing length 10 bytes
@@ -315,7 +324,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[12] = 0x00;
     send_data[13] = 0x00;   // No client id
     send_data[14] = 0x1A;   // End of data to send
-    if (!gsm_modem_cipsend(send_data, 15, 4000)) {
+    if (!gsm_modem_cipsend(send_data, 15, 4000, 4)) {
         LOG_ERR("Cipsend failed");
         goto DONE;
     }
@@ -365,7 +374,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     memcpy(publish_buffer + 4 + topic_len, data, len);
     publish_buffer[total_len++] = 0x1A;   // End
 
-    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000)) {
+    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000, 4)) {
         goto DONE;
     }
 
@@ -454,8 +463,10 @@ DONE:
 void gsm_modem_mqtt_close(void) {
     // # AT+CIPCLOSE    Close connection socket
     // "OK"
-    char at_cipclose[] = "\nAT+CIPCLOSE\n";
-    gsm_modem_cmd_base(at_cipclose, sizeof(at_cipclose) - 1, "OK", 1000);
+    char at_cipclose[] = "AT+CIPCLOSE";
+    if (!gsm_modem_cmd_base_str(at_cipclose, "OK", 1000, 4, 1000)) {
+        LOG_ERR("Failed to close mqtt connection");
+    }
 }
 
 /* ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@
 #include "periphery/gpio_ext3v3.h"
 #include "periphery/gpio_status_led.h"
 #include "periphery/gpio_user_btn.h"
+#include "sample_storage.h"
 #include "sim800l.h"
 #include "version.h"
 
@@ -260,7 +261,8 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
     bool rc = 0;
 
     for (uint8_t resend_cnt = 0; resend_cnt < resend_num; resend_cnt++) {
-        rc = nvs_storage_sample_pull(sample_buff, NVS_SAMPLE_SIZE, &pull_idx);
+        k_sleep(K_MSEC(500));   // Make some break between sending
+        rc = sample_storage_pull(sample_buff, NVS_SAMPLE_SIZE, &pull_idx);
         if (false == rc) {
             // Arch empty
             LOG_INF("Arch empty");
@@ -284,7 +286,7 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
             break;
         } else {
             LOG_INF("Mark samle idx %u as sent", pull_idx);
-            nvs_storage_sample_mark_as_sent(pull_idx);
+            sample_storage_mark_as_sent(pull_idx);
         }
     }
 }
@@ -345,7 +347,7 @@ static bool wlab_publish(void) {
     res = true;
 DONE:
     if ((false == res) && (sample_bin.version != 0)) {
-        nvs_storage_sample_push(&sample_bin, sizeof(struct wlab_db_bin));
+        sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
     }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
     return (res);
