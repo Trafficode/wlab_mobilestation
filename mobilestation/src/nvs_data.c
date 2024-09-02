@@ -19,7 +19,7 @@ LOG_MODULE_REGISTER(NVSD, LOG_LEVEL_DBG);
 
 static struct nvs_fs Fs = {0};
 
-static struct arch_idx ArchIdx = {0, 0};
+// static struct arch_idx ArchIdx = {0, 0};
 
 void nvs_data_init(void) {
     int ret = 0;
@@ -53,16 +53,27 @@ void nvs_data_init(void) {
     }
     boot_counter++;
 
-    area_len = sizeof(struct arch_idx);
-    ret = nvs_read(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
-    if (0 == ret) {
-        ArchIdx.pushed_idx = NVS_ID_SAMPLE_CONT_START;
-        ArchIdx.pulled_idx = NVS_ID_SAMPLE_CONT_START;
-        nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
-    }
+    // area_len = sizeof(struct arch_idx);
+    // ret = nvs_read(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
+    // if (0 == ret) {
+    //     ArchIdx.pushed_idx = NVS_ID_SAMPLE_CONT_START;
+    //     ArchIdx.pulled_idx = NVS_ID_SAMPLE_CONT_START;
+    //     nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
+    // } else {
+    //     if (ArchIdx.pushed_idx > NVS_ID_SAMPLE_CONT_END ||
+    //         ArchIdx.pushed_idx < NVS_ID_SAMPLE_CONT_START ||
+    //         ArchIdx.pulled_idx > NVS_ID_SAMPLE_CONT_END ||
+    //         ArchIdx.pulled_idx < NVS_ID_SAMPLE_CONT_START) {
+    //         // Some bad values read, restore defaults
+    //         LOG_ERR("pushed_idx/pulled_idx bad values read, restore defaults");
+    //         ArchIdx.pushed_idx = NVS_ID_SAMPLE_CONT_START;
+    //         ArchIdx.pulled_idx = NVS_ID_SAMPLE_CONT_START;
+    //         nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, area_len);
+    //     }
+    // }
 
-    LOG_INF("PUSHED_IN %u", ArchIdx.pushed_idx);
-    LOG_INF("PULLED_OUT %u", ArchIdx.pulled_idx);
+    // LOG_INF("PUSHED_IN %u", ArchIdx.pushed_idx);
+    // LOG_INF("PULLED_OUT %u", ArchIdx.pulled_idx);
 
     if (area_len ==
         nvs_write(&Fs, NVS_ID_BOOT_COUNT, &boot_counter, area_len)) {
@@ -72,57 +83,56 @@ void nvs_data_init(void) {
     }
 }
 
-bool nvs_storage_sample_push(void *sample, size_t len) {
-    bool res = false;
-    uint8_t buffer[NVS_SAMPLE_SIZE];
+// bool nvs_storage_sample_push(void *sample, size_t len) {
+//     bool res = false;
+//     uint8_t buffer[NVS_SAMPLE_SIZE];
 
-    LOG_INF("Push to arch, PushedIn %u PulledOut %u", ArchIdx.pushed_idx,
-            ArchIdx.pulled_idx);
-    if (ArchIdx.pushed_idx == (ArchIdx.pulled_idx - 1) ||
-        (ArchIdx.pushed_idx == NVS_ID_SAMPLE_CONT_END &&
-         (0 == ArchIdx.pulled_idx))) {
-        LOG_ERR("No free space to push sample in");
-    } else {
-        uint16_t push_idx = (ArchIdx.pushed_idx + 1) % NVS_SAMPLE_MAX_NUM;
-        memset(buffer, 0x00, NVS_SAMPLE_SIZE);
-        memcpy(buffer, sample, len);
-        if (NVS_SAMPLE_SIZE ==
-            nvs_write(&Fs, push_idx, buffer, NVS_SAMPLE_SIZE)) {
-            ArchIdx.pushed_idx = push_idx;
-            nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx.pushed_idx,
-                      sizeof(uint16_t));
-            res = true;
-        }
-    }
+//     LOG_INF("Push to arch, PushedIn %u PulledOut %u", ArchIdx.pushed_idx,
+//             ArchIdx.pulled_idx);
+//     if (ArchIdx.pushed_idx == (ArchIdx.pulled_idx - 1) ||
+//         (ArchIdx.pushed_idx == NVS_ID_SAMPLE_CONT_END &&
+//          (NVS_ID_SAMPLE_CONT_START == ArchIdx.pulled_idx))) {
+//         LOG_ERR("No free space to push sample in");
+//     } else {
+//         uint16_t push_idx = (ArchIdx.pushed_idx + 1) % NVS_SAMPLE_MAX_NUM;
+//         memset(buffer, 0x00, NVS_SAMPLE_SIZE);
+//         memcpy(buffer, sample, len);
+//         if (NVS_SAMPLE_SIZE ==
+//             nvs_write(&Fs, push_idx, buffer, NVS_SAMPLE_SIZE)) {
+//             ArchIdx.pushed_idx = push_idx;
+//             nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx.pushed_idx,
+//                       sizeof(uint16_t));
+//             res = true;
+//         }
+//     }
 
-    return (res);
-}
+//     return (res);
+// }
 
-void nvs_storage_sample_mark_as_sent(uint16_t pull_idx) {
-    ArchIdx.pulled_idx = pull_idx;
-    nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, sizeof(uint16_t));
-}
+// void nvs_storage_sample_mark_as_sent(uint16_t pull_idx) {
+//     ArchIdx.pulled_idx = pull_idx + 1;
+//     nvs_write(&Fs, NVS_ID_SAMPLE_CONT_IDX, &ArchIdx, sizeof(uint16_t));
+// }
 
-bool nvs_storage_sample_pull(void *sample, size_t len, uint16_t *pull_idx) {
-    bool res = false;
-    uint8_t buffer[NVS_SAMPLE_SIZE];
+// bool nvs_storage_sample_pull(void *sample, size_t len, uint16_t *pull_idx) {
+//     bool res = false;
+//     uint8_t buffer[NVS_SAMPLE_SIZE];
 
-    if (ArchIdx.pushed_idx != ArchIdx.pulled_idx) {
-        uint16_t next_idx = (ArchIdx.pulled_idx + 1) % NVS_SAMPLE_MAX_NUM;
-        int ret = nvs_read(&Fs, next_idx, buffer, NVS_SAMPLE_SIZE);
-        if (ret <= 0) {
-            LOG_ERR("Failed to read sample %d", ret);
-        } else {
-            memcpy(sample, buffer, len);
-            *pull_idx = next_idx;
-            res = true;
-        }
-    } else {
-        LOG_INF("No samples waiting to send");
-    }
+//     if (ArchIdx.pushed_idx != ArchIdx.pulled_idx) {
+//         int ret = nvs_read(&Fs, ArchIdx.pulled_idx, buffer, NVS_SAMPLE_SIZE);
+//         if (ret <= 0) {
+//             LOG_ERR("Failed to read sample %d", ret);
+//         } else {
+//             memcpy(sample, buffer, len);
+//             *pull_idx = ArchIdx.pulled_idx;
+//             res = true;
+//         }
+//     } else {
+//         LOG_INF("No samples waiting to send");
+//     }
 
-    return (res);
-}
+//     return (res);
+// }
 
 void nvs_data_apn_config_get(struct apn_config *apnconf) {
     __ASSERT((apnconf != NULL), "Null pointer passed");

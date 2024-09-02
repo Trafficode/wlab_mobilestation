@@ -19,6 +19,7 @@ target_sources(app PRIVATE
     src/periphery/gpio_user_btn.c
     src/periphery/adc_battery_vol.c
     src/main.c
+    src/sample_storage.c
     src/nvs_data.c
     src/shell_commands.c
     src/sim800l.c
