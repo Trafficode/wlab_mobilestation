@@ -236,12 +236,6 @@ bool gsm_modem_net_setup(struct apn_config *apn) {
     // AT+CSTT="your_apn","your_user","your_password"
     // OK
     char at_cstt[32 + 3 * NVS_ID_APN_MAX_LEN];
-    // int at_cstt_len = sprintf(at_cstt, "\nAT+CSTT=\"%s\",\"%s\",\"%s\"\n",
-    //                           apn->apn, apn->user, apn->password);
-    // if (!gsm_modem_cmd_base(at_cstt, at_cstt_len, "OK", 1000)) {
-    //     LOG_ERR("Set APN configuration failed");
-    //     goto DONE;
-    // }
     sprintf(at_cstt, "AT+CSTT=\"%s\",\"%s\",\"%s\"", apn->apn, apn->user,
             apn->password);
     if (!gsm_modem_cmd_base_str(at_cstt, "OK", 1000, 4, 1000)) {

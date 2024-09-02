@@ -33,10 +33,12 @@
 
 # TODO
 * Verify cpu usage
-* Storing not properly published samples to flash memory and resending
+* Storing not properly published samples to temporary storage
+* Storing not properly published samples to persistant
 * Sim800l commands: builtin retries, some command returns error from time to time
   * AT+CSTT="internet","","" 
   * AT+CIPSTATUS
+* Publishing with QoS = 1
 * Enable DC/DC instead of LDO
 * Why modem is blinking
 * Power saving modes
@@ -45,7 +47,8 @@
   * Cuting SHT3x sensor from power
 * User button for future use
 * Send battery voltage as additional publish data
-
+* MqttDash android app
+  
 # v5_ncs2_7_0
 
 ## DONE

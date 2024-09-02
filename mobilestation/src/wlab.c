@@ -285,7 +285,7 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
             LOG_ERR("Resend sample failed...");
             break;
         } else {
-            LOG_INF("Mark samle idx %u as sent", pull_idx);
+            LOG_INF("Mark sample idx %u as sent", pull_idx);
             sample_storage_mark_as_sent(pull_idx);
         }
     }

@@ -47,6 +47,7 @@ bool sample_storage_pull(void *sample, size_t len, uint16_t *pull_idx) {
         } else {
             *pull_idx = PullIdx;
             memcpy(sample, buffer, len);
+            res = true;
         }
     } else {
         LOG_INF("No samples waiting to send");
@@ -64,11 +65,10 @@ bool sample_storage_push(void *sample, size_t len) {
         ((PushIdx == NVS_SAMPLE_MAX_NUM - 1) && (0 == PullIdx))) {
         LOG_ERR("No free space to push sample in");
     } else {
-        uint16_t push_idx = (PushIdx + 1) % NVS_SAMPLE_MAX_NUM;
         memset(buffer, 0x00, NVS_SAMPLE_SIZE);
         memcpy(buffer, sample, len);
-        if (save_sample_idx(buffer, NVS_SAMPLE_SIZE, push_idx)) {
-            PushIdx = push_idx;
+        if (save_sample_idx(buffer, NVS_SAMPLE_SIZE, PushIdx)) {
+            PushIdx = (PushIdx + 1) % NVS_SAMPLE_MAX_NUM;
             res = true;
         }
     }
