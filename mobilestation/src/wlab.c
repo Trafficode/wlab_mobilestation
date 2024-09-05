@@ -340,15 +340,15 @@ static bool wlab_publish(void) {
         gsm_modem_mqtt_close();
         goto DONE;
     } else {
-        wlab_publish_arch_samples(WLAB_DEFAULT_ARCH_PUB_NUM);
+        // wlab_publish_arch_samples(WLAB_DEFAULT_ARCH_PUB_NUM);
     }
 
     gsm_modem_mqtt_close();
     res = true;
 DONE:
-    if ((false == res) && (sample_bin.version != 0)) {
-        sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
-    }
+    // if ((false == res) && (sample_bin.version != 0)) {
+    //     sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
+    // }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
     return (res);
 }
