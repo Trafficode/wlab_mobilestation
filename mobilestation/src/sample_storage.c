@@ -47,6 +47,7 @@ bool sample_storage_pull(void *sample, size_t len, uint16_t *pull_idx) {
         } else {
             *pull_idx = PullIdx;
             memcpy(sample, buffer, len);
+            res = true;
         }
     } else {
         LOG_INF("No samples waiting to send");
