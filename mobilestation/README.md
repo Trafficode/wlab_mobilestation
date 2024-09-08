@@ -33,6 +33,7 @@
 
 # TODO
 * Verify cpu usage
+* Switch from toolchain 16.1 to 2.7.0
 * Storing not properly published samples to temporary storage
 * Storing not properly published samples to persistant
 * Sim800l commands: builtin retries, some command returns error from time to time

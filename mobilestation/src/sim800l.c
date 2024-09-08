@@ -88,6 +88,7 @@ static bool gsm_modem_cmd_base_str(uint8_t *str_cmd, const char *expected,
 
 void gsm_modem_init(void) {
     gpio_sim800l_init();
+    gpio_sim800l_rst_up();
     uart_gsm_init();
 
     if (gsm_modem_test()) {
@@ -103,7 +104,8 @@ bool gsm_modem_test(void) {
 }
 
 bool gsm_modem_reset(void) {
-    return gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 1000, 3, 100);
+    // return gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 1000, 3, 100);
+    return (true);
 }
 
 bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
@@ -112,7 +114,7 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
     // 0a 3e 20 - "\n> "
     // data has to be ended with 0x1A
     uint8_t try = 0;
-    for (uint8_t try = 0; try < tries; try++) {
+    for (try = 0; try < tries; try++) {
         k_sleep(K_MSEC(1000));
         uart_gsm_rx_clear();
 
@@ -165,6 +167,19 @@ bool gsm_modem_config(void) {
         goto DONE;
     }
 
+    // AT+CFUN=1  Enable normal mode
+    // OK
+    if (!gsm_modem_cmd_base_str("AT+CFUN=1", "OK", 400, 2, 200)) {
+        goto DONE;
+    }
+
+    // AT+CSMINS?  Check is sim card inserted
+    // +CSMINS: 0,1 Inserted and ready
+    // +CSMINS: 0,0 Not inserted
+    if (!gsm_modem_cmd_base_str("AT+CSMINS?", "+CSMINS: 0,1", 400, 3, 200)) {
+        goto DONE;
+    }
+
     // AT+CLTS=1  Enable the network time synchronization
     // OK
     if (!gsm_modem_cmd_base_str("AT+CLTS=1", "OK", 400, 2, 200)) {
@@ -195,10 +210,32 @@ bool gsm_modem_wakeup(void) {
     uart_gsm_send(at, sizeof(at) - 1);
     return gsm_modem_cmd_base_str("AT+CSCLK=0", "OK", 1000,
                                   GSM_MODEM_WAKEUP_ATTEMPS, 100);
+
+    // gpio_sim800l_rst_down();
+    // k_sleep(K_MSEC(1000));
+    // gpio_sim800l_rst_up();
+    // return gsm_modem_cmd_base_str("AT", "OK", 1000, 16, 100);
+
+    // return gsm_modem_cmd_base_str("AT+CFUN=1", "OK", 1000, 16, 100);
 }
 
 bool gsm_modem_sleep(void) {
-    return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200);
+    // GSM connection is maintain, power consumption 1-14mA
+    // Automatically go to sleep mode if no uart activity
+    // return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200);
+
+    // return gsm_modem_cmd_base_str("AT+CPOWD=1", "NORMAL POWER DOWN", 1000, 4,
+    //                               200);
+    // return gsm_modem_cmd_base_str("AT+CFUN=4", "OK", 1000, 16, 100);
+
+    bool res = false;
+    if (!gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200)) {
+        goto DONE;
+    }
+
+    res = true;
+DONE:
+    return (res);
 }
 
 bool gsm_modem_net_setup(struct apn_config *apn) {
@@ -368,7 +405,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     memcpy(publish_buffer + 4 + topic_len, data, len);
     publish_buffer[total_len++] = 0x1A;   // End
 
-    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000, 4)) {
+    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000, 2)) {
         goto DONE;
     }
 

@@ -202,6 +202,7 @@ void wlab_proc(void) {
     int16_t i_temp, i_humidity;
     int32_t batt_milliv;
 
+    LOG_INF("Heart beat, sensor read...");
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
     if (0 == sensor_rc) {
         sensor_channel_get(Sht3xDev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
@@ -251,7 +252,7 @@ void wlab_proc(void) {
         wlab_buffer_commit(&HumBuffer, i_humidity, ts);
     }
 
-    k_sleep(K_MSEC(10 * 1000));   // read sample every 20sec
+    k_sleep(K_MSEC(10 * 1000));   // read sample every 10sec
 }
 
 static void wlab_publish_arch_samples(uint8_t resend_num) {
@@ -261,7 +262,6 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
     bool rc = 0;
 
     for (uint8_t resend_cnt = 0; resend_cnt < resend_num; resend_cnt++) {
-        k_sleep(K_MSEC(500));   // Make some break between sending
         rc = sample_storage_pull(sample_buff, NVS_SAMPLE_SIZE, &pull_idx);
         if (false == rc) {
             // Arch empty
@@ -279,6 +279,11 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
 
         LOG_INF("Structure version %u, len %u", sample_buff[0], sample_len);
 
+        k_sleep(K_MSEC(500));   // Make some break between sending
+        struct wlab_db_bin *sample = (struct wlab_db_bin *)sample_buff;
+        LOG_INF("PULL ID %02X%02X%02X%02X%02X%02X %lli", sample->id[5],
+                sample->id[4], sample->id[3], sample->id[2], sample->id[1],
+                sample->id[0], sample->ts);
         rc = gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
                                     (uint8_t *)sample_buff, sample_len);
         if (false == rc) {
@@ -340,15 +345,18 @@ static bool wlab_publish(void) {
         gsm_modem_mqtt_close();
         goto DONE;
     } else {
-        // wlab_publish_arch_samples(WLAB_DEFAULT_ARCH_PUB_NUM);
+        wlab_publish_arch_samples(WLAB_DEFAULT_ARCH_PUB_NUM);
     }
 
     gsm_modem_mqtt_close();
     res = true;
 DONE:
-    // if ((false == res) && (sample_bin.version != 0)) {
-    //     sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
-    // }
+    if ((false == res) && (sample_bin.version != 0)) {
+        LOG_INF("PUSH ID %02X%02X%02X%02X%02X%02X %lli", sample_bin.id[5],
+                sample_bin.id[4], sample_bin.id[3], sample_bin.id[2],
+                sample_bin.id[1], sample_bin.id[0], sample_bin.ts);
+        sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
+    }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
     return (res);
 }

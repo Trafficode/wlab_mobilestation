@@ -114,19 +114,6 @@
 	};
 };
 
-&i2c1 {
-	compatible = "nordic,nrf-twi";
-	/* Cannot be used together with spi1. */
-	/* status = "okay"; */
-	pinctrl-0 = <&i2c1_default>;
-	pinctrl-1 = <&i2c1_sleep>;
-	pinctrl-names = "default", "sleep";
-};
-
-&ieee802154 {
-	status = "okay";
-};
-
 &flash0 {
 
 	partitions {
@@ -172,31 +159,26 @@ zephyr_udc0: &usbd {
 	status = "okay";
 };
 
-&i2s0 {
-	status = "disabled";
-};
+// &i2c0_default {
+	//     group2 {
+		//         psels = <NRF_PSEL(TWIM_SCL, 0, 17)>, <NRF_PSEL(TWIM_SDA, 0, 20)>;
+		//         bias-pull-up;
+	//     };
+// };
 
-&i2c0_default {
+// &uart1_default {
+	//     group2 {
+		//         psels = <NRF_PSEL(UART_TX, 0, 22)>;
+	//     };
 
-	group2 {
-		psels = <NRF_PSEL(TWIM_SCL, 0, 17)>, <NRF_PSEL(TWIM_SDA, 0, 20)>;
-		bias-pull-up;
-	};
-};
+	//     group1 {
+		//         psels = <NRF_PSEL(UART_RX, 0, 24)>;
+	//     };
+// };
+// /delete-node/ &{/pin-controller/i2c0_default/group1/};
 
-&uart1_default {
-	group2 {
-		psels = <NRF_PSEL(UART_TX, 0, 22)>;
-	};
-
-	group1 {
-		psels = <NRF_PSEL(UART_RX, 0, 24)>;
-	};
-};
-/delete-node/ &{/pin-controller/i2c0_default/group1/};
-
-&uart1_sleep {
-	group1 {
-		psels = <NRF_PSEL(UART_RX, 0, 24)>, <NRF_PSEL(UART_TX, 0, 22)>;
-	};
-};
+// &uart1_sleep {
+	//     group1 {
+		//         psels = <NRF_PSEL(UART_RX, 0, 24)>, <NRF_PSEL(UART_TX, 0, 22)>;
+	//     };
+// };
