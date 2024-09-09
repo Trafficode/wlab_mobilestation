@@ -89,6 +89,8 @@ static bool gsm_modem_cmd_base_str(uint8_t *str_cmd, const char *expected,
 void gsm_modem_init(void) {
     gpio_sim800l_init();
     gpio_sim800l_rst_up();
+    gpio_sim800l_dtr_down();   // Set active state
+
     uart_gsm_init();
 
     if (gsm_modem_test()) {
@@ -101,11 +103,6 @@ void gsm_modem_init(void) {
 
 bool gsm_modem_test(void) {
     return gsm_modem_cmd_base_str("AT", "OK", 1000, 16, 100);
-}
-
-bool gsm_modem_reset(void) {
-    // return gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 1000, 3, 100);
-    return (true);
 }
 
 bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
@@ -167,6 +164,17 @@ bool gsm_modem_config(void) {
         goto DONE;
     }
 
+    // Enable DTR driven sleep mode
+    if (!gsm_modem_cmd_base_str("AT+CSCLK=1", "OK", 1000, 4, 200)) {
+        goto DONE;
+    }
+
+    // AT+CNETLIGHT=0  Disable blinking led
+    // OK
+    if (!gsm_modem_cmd_base_str("AT+CNETLIGHT=0", "OK", 400, 2, 200)) {
+        goto DONE;
+    }
+
     // AT+CFUN=1  Enable normal mode
     // OK
     if (!gsm_modem_cmd_base_str("AT+CFUN=1", "OK", 400, 2, 200)) {
@@ -186,12 +194,6 @@ bool gsm_modem_config(void) {
         goto DONE;
     }
 
-    // AT+CNETLIGHT=0  Disable blinking led
-    // OK
-    if (!gsm_modem_cmd_base_str("AT+CNETLIGHT=0", "OK", 400, 2, 200)) {
-        goto DONE;
-    }
-
     // AT&W  Save configuration
     // OK
     if (!gsm_modem_cmd_base_str("AT&W", "OK", 1000, 4, 200)) {
@@ -205,37 +207,13 @@ DONE:
 }
 
 bool gsm_modem_wakeup(void) {
-    char at[] = "\nAT\n";
-    uart_gsm_rx_clear();
-    uart_gsm_send(at, sizeof(at) - 1);
-    return gsm_modem_cmd_base_str("AT+CSCLK=0", "OK", 1000,
-                                  GSM_MODEM_WAKEUP_ATTEMPS, 100);
-
-    // gpio_sim800l_rst_down();
-    // k_sleep(K_MSEC(1000));
-    // gpio_sim800l_rst_up();
-    // return gsm_modem_cmd_base_str("AT", "OK", 1000, 16, 100);
-
-    // return gsm_modem_cmd_base_str("AT+CFUN=1", "OK", 1000, 16, 100);
+    gpio_sim800l_dtr_down();
+    return (true);
 }
 
 bool gsm_modem_sleep(void) {
-    // GSM connection is maintain, power consumption 1-14mA
-    // Automatically go to sleep mode if no uart activity
-    // return gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200);
-
-    // return gsm_modem_cmd_base_str("AT+CPOWD=1", "NORMAL POWER DOWN", 1000, 4,
-    //                               200);
-    // return gsm_modem_cmd_base_str("AT+CFUN=4", "OK", 1000, 16, 100);
-
-    bool res = false;
-    if (!gsm_modem_cmd_base_str("AT+CSCLK=2", "OK", 1000, 4, 200)) {
-        goto DONE;
-    }
-
-    res = true;
-DONE:
-    return (res);
+    gpio_sim800l_dtr_up();
+    return (true);
 }
 
 bool gsm_modem_net_setup(struct apn_config *apn) {

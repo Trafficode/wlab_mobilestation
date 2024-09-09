@@ -24,6 +24,18 @@ void gpio_sim800l_rst_up(void);
  */
 void gpio_sim800l_rst_down(void);
 
+/**
+ * @brief gpio_sim800l_dtr_down
+ * Go to logical pin low.
+ */
+void gpio_sim800l_dtr_down(void);
+
+/**
+ * @brief gpio_sim800l_dtr_up
+ * Go to logical pin high.
+ */
+void gpio_sim800l_dtr_up(void);
+
 #endif /* GPIO_SIM800L_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
