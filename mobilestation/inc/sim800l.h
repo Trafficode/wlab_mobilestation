@@ -81,7 +81,8 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port);
  * @return true Success
  * @return false Failed
  */
-bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len);
+bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
+                            uint8_t retires);
 
 /**
  * @brief gsm_modem_mqtt_close

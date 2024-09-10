@@ -276,11 +276,12 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
 
         k_sleep(K_MSEC(500));   // Make some break between sending
         struct wlab_db_bin *sample = (struct wlab_db_bin *)sample_buff;
-        LOG_INF("PULL ID %02X%02X%02X%02X%02X%02X %lli", sample->id[5],
-                sample->id[4], sample->id[3], sample->id[2], sample->id[1],
-                sample->id[0], sample->ts);
+        LOG_INF("PULL IDX %u ID %02X%02X%02X%02X%02X%02X %lli", pull_idx,
+                sample->id[5], sample->id[4], sample->id[3], sample->id[2],
+                sample->id[1], sample->id[0], sample->ts);
+        sample->humidity_min = 0;
         rc = gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
-                                    (uint8_t *)sample_buff, sample_len);
+                                    (uint8_t *)sample_buff, sample_len, 1);
         if (false == rc) {
             LOG_ERR("Resend sample failed...");
             break;
@@ -335,7 +336,7 @@ static bool wlab_publish(void) {
 
     if (!gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
                                 (uint8_t *)&sample_bin,
-                                sizeof(struct wlab_db_bin))) {
+                                sizeof(struct wlab_db_bin), 2)) {
         LOG_ERR("Publish to MQTT failed");
         gsm_modem_mqtt_close();
         goto DONE;

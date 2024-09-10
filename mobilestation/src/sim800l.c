@@ -93,11 +93,15 @@ void gsm_modem_init(void) {
 
     uart_gsm_init();
 
-    if (gsm_modem_test()) {
-        LOG_INF("Push modem into sleep mode");
-        gsm_modem_sleep();
-    } else {
-        LOG_ERR("Modem doesn't react to AT command");
+    while (true) {
+        if (gsm_modem_test()) {
+            LOG_INF("Push modem into sleep mode");
+            gsm_modem_sleep();
+            break;
+        } else {
+            LOG_ERR("Modem doesn't react to AT command, reset...");
+            gsm_modem_reset();
+        }
     }
 }
 
@@ -106,12 +110,12 @@ bool gsm_modem_test(void) {
 }
 
 bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
-                       uint8_t tries) {
+                       uint8_t retires) {
     // AT+CIPSEND
     // 0a 3e 20 - "\n> "
     // data has to be ended with 0x1A
     uint8_t try = 0;
-    for (try = 0; try < tries; try++) {
+    for (try = 0; try < retires; try++) {
         k_sleep(K_MSEC(1000));
         uart_gsm_rx_clear();
 
@@ -144,7 +148,7 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
         break;
     }
 
-    return (tries == try) ? false : true;
+    return (retires == try) ? false : true;
 }
 
 bool gsm_modem_config(void) {
@@ -204,6 +208,17 @@ bool gsm_modem_config(void) {
 DONE:
     LOG_INF("... gsm_modem_config done res %u", res);
     return (res);
+}
+
+bool gsm_modem_reset(void) {
+    gpio_sim800l_rst_down();
+    k_sleep(K_MSEC(500));   // At least 100ms
+    gpio_sim800l_rst_up();
+    k_sleep(K_MSEC(5000));   // 2-5sec
+    // ATZ
+    // AT&F
+    // AT+RESTORE
+    return (true);
 }
 
 bool gsm_modem_wakeup(void) {
@@ -312,7 +327,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     // CONNECT OK
     char send_data[64];
     sprintf(send_data, "AT+CIPSTART=\"TCP\",\"%s\",\"%u\"", domain, port);
-    if (!gsm_modem_cmd_base_str(send_data, "CONNECT OK", 16000, 3, 1000)) {
+    if (!gsm_modem_cmd_base_str(send_data, "CONNECT OK", 4000, 2, 1000)) {
         goto DONE;
     }
 
@@ -333,7 +348,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     send_data[12] = 0x00;
     send_data[13] = 0x00;   // No client id
     send_data[14] = 0x1A;   // End of data to send
-    if (!gsm_modem_cipsend(send_data, 15, 4000, 4)) {
+    if (!gsm_modem_cipsend(send_data, 15, 4000, 2)) {
         LOG_ERR("Cipsend failed");
         goto DONE;
     }
@@ -362,7 +377,8 @@ DONE:
     return (res);
 }
 
-bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
+bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
+                            uint8_t retries) {
     // AT+CIPSEND Publish message: 123, topic /wlabdb/bix
     // 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 78 31 32 33 1A
     // uint8_t pubbix[] = {0x30, 0x10, 0x00, 0x0B, 0x2F, 0x77, 0x6C,
@@ -383,7 +399,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len) {
     memcpy(publish_buffer + 4 + topic_len, data, len);
     publish_buffer[total_len++] = 0x1A;   // End
 
-    if (!gsm_modem_cipsend(publish_buffer, total_len, 12000, 2)) {
+    if (!gsm_modem_cipsend(publish_buffer, total_len, 4000, retries)) {
         goto DONE;
     }
 
