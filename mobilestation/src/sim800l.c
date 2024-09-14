@@ -223,11 +223,13 @@ bool gsm_modem_reset(void) {
 
 bool gsm_modem_wakeup(void) {
     gpio_sim800l_dtr_down();
+    LOG_INF("*** gsm_modem_wakeup");
     return (true);
 }
 
 bool gsm_modem_sleep(void) {
     gpio_sim800l_dtr_up();
+    LOG_INF("*** gsm_modem_sleep");
     return (true);
 }
 
@@ -391,7 +393,8 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
     // 1B: PacketType 1B: RemainingLen + 2B: TopicLen + Topic + Data
     size_t total_len = 1 + 1 + 2 + strlen(topic) + len;
 
-    publish_buffer[0] = 0x30;                      // MQTT PUBLISH packet type
+    // publish_buffer[0] = 0x30;   // MQTT PUBLISH packet type, QoS = 0
+    publish_buffer[0] = 0x30 | (1 << 1);   // MQTT PUBLISH packet type, QoS = 1
     publish_buffer[1] = 2 + strlen(topic) + len;   // Remaining length
     publish_buffer[2] = (uint8_t)(topic_len >> 8);
     publish_buffer[3] = (uint8_t)(topic_len & 0x00FF);
@@ -403,20 +406,26 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
         goto DONE;
     }
 
-    // There is no answer from server, maybe higher QoS needed
-    // uint8_t read_buffer[6];
-    // if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
-    //     goto DONE;
-    // } else {
-    //     // 40 - mqtt control packet
-    //     // 02 - remainging length
-    //     // XX - package identifier being acknowledged msb
-    //     // XX - package identifier being acknowledged lsb
-    //     //  - connect return code, 0 - success
-    //     if ((0x40 != read_buffer[0]) || (0x02 != read_buffer[1])) {
-    //         goto DONE;
-    //     }
-    // }
+    // There is no answer from broker for QoS = 0, PUBACK is sent
+    // by broker for QoS = 1
+    uint8_t read_buffer[6] = {0, 0, 0, 0, 0, 0};
+    if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
+        goto DONE;
+    } else {
+        // 0A - new line \n
+        // 40 - mqtt control packet
+        // 02 - remainging length
+        // XX - package identifier being acknowledged msb
+        // XX - package identifier being acknowledged lsb
+        //  - connect return code, 0 - success
+        if ((0x40 != read_buffer[1]) || (0x02 != read_buffer[2])) {
+            LOG_ERR("Bad PUBACK answer from broker: %02X %02X", read_buffer[1],
+                    read_buffer[2]);
+            goto DONE;
+        } else {
+            LOG_INF("PUBACK");
+        }
+    }
 
     res = true;
 DONE:

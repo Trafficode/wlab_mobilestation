@@ -12,6 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/kernel_version.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/sys/reboot.h>
 
 #include "nvs_data.h"
 #include "periphery/adc_battery_vol.h"
@@ -115,6 +116,12 @@ static void wlab_sensor_failed_led_scene(void) {
     gpio_status_led_set_state(0);
 }
 
+static void wlab_sensor_sys_reboot_led_scene(void) {
+    gpio_status_led_set_state(1);
+    k_sleep(K_MSEC(1000));
+    gpio_status_led_set_state(0);
+}
+
 struct wlab_buffer TempBuffer;
 struct wlab_buffer HumBuffer;
 
@@ -196,6 +203,7 @@ void wlab_proc(void) {
     struct sensor_value temp, hum;
     int16_t i_temp, i_humidity;
     int32_t batt_milliv;
+    static uint8_t sensror_err_counter = 0;
 
     LOG_INF("Heart beat, sensor read...");
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
@@ -206,10 +214,18 @@ void wlab_proc(void) {
         i_temp = temp.val1 * 10 + temp.val2 / 100000;
         i_humidity = hum.val1 * 10 + hum.val2 / 100000;
         LOG_INF("SHT3XD: %d Cel ; %d %%RH", i_temp, i_humidity);
+        sensror_err_counter = 0;
         wlab_sensor_succ_led_scene();
     } else {
-        LOG_ERR("SHT3XD: failed: %d\n", sensor_rc);
+        LOG_ERR("SHT3XD: failed: %d", sensor_rc);
+        sensror_err_counter++;
         wlab_sensor_failed_led_scene();
+    }
+
+    if (3 == sensror_err_counter) {
+        // Reboot station once sensor failed 3 times, one by oen
+        wlab_sensor_sys_reboot_led_scene();
+        sys_reboot(SYS_REBOOT_COLD);
     }
 
     batt_milliv = adc_battery_vol_get_milliv();
@@ -274,7 +290,7 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
 
         LOG_INF("Structure version %u, len %u", sample_buff[0], sample_len);
 
-        k_sleep(K_MSEC(500));   // Make some break between sending
+        k_sleep(K_MSEC(2000));   // Make some break between sending
         struct wlab_db_bin *sample = (struct wlab_db_bin *)sample_buff;
         LOG_INF("PULL IDX %u ID %02X%02X%02X%02X%02X%02X %lli", pull_idx,
                 sample->id[5], sample->id[4], sample->id[3], sample->id[2],
