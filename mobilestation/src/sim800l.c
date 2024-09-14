@@ -380,7 +380,7 @@ DONE:
 }
 
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
-                            uint8_t retries) {
+                            uint8_t retries, uint8_t qos) {
     // AT+CIPSEND Publish message: 123, topic /wlabdb/bix
     // 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 78 31 32 33 1A
     // uint8_t pubbix[] = {0x30, 0x10, 0x00, 0x0B, 0x2F, 0x77, 0x6C,
@@ -394,7 +394,8 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
     size_t total_len = 1 + 1 + 2 + strlen(topic) + len;
 
     // publish_buffer[0] = 0x30;   // MQTT PUBLISH packet type, QoS = 0
-    publish_buffer[0] = 0x30 | (1 << 1);   // MQTT PUBLISH packet type, QoS = 1
+    publish_buffer[0] =
+        0x30 | (qos << 1);   // MQTT PUBLISH packet type, QoS = 1
     publish_buffer[1] = 2 + strlen(topic) + len;   // Remaining length
     publish_buffer[2] = (uint8_t)(topic_len >> 8);
     publish_buffer[3] = (uint8_t)(topic_len & 0x00FF);
@@ -406,24 +407,26 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
         goto DONE;
     }
 
-    // There is no answer from broker for QoS = 0, PUBACK is sent
-    // by broker for QoS = 1
-    uint8_t read_buffer[6] = {0, 0, 0, 0, 0, 0};
-    if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
-        goto DONE;
-    } else {
-        // 0A - new line \n
-        // 40 - mqtt control packet
-        // 02 - remainging length
-        // XX - package identifier being acknowledged msb
-        // XX - package identifier being acknowledged lsb
-        //  - connect return code, 0 - success
-        if ((0x40 != read_buffer[1]) || (0x02 != read_buffer[2])) {
-            LOG_ERR("Bad PUBACK answer from broker: %02X %02X", read_buffer[1],
-                    read_buffer[2]);
+    if (qos > 0) {
+        // There is no answer from broker for QoS = 0, PUBACK is sent
+        // by broker for QoS = 1
+        uint8_t read_buffer[6] = {0, 0, 0, 0, 0, 0};
+        if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
             goto DONE;
         } else {
-            LOG_INF("PUBACK");
+            // 0A - new line \n
+            // 40 - mqtt control packet
+            // 02 - remainging length
+            // XX - package identifier being acknowledged msb
+            // XX - package identifier being acknowledged lsb
+            //  - connect return code, 0 - success
+            if ((0x40 != read_buffer[1]) || (0x02 != read_buffer[2])) {
+                LOG_ERR("Bad PUBACK answer from broker: %02X %02X",
+                        read_buffer[1], read_buffer[2]);
+                goto DONE;
+            } else {
+                LOG_INF("PUBACK");
+            }
         }
     }
 

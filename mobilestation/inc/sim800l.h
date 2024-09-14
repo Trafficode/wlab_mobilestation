@@ -82,7 +82,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port);
  * @return false Failed
  */
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
-                            uint8_t retires);
+                            uint8_t retires, uint8_t qos);
 
 /**
  * @brief gsm_modem_mqtt_close
