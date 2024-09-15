@@ -12,8 +12,10 @@
 
 #include "nvs_data.h"
 
-#define MQTT_PUBLISH_QOS_0 (0)
-#define MQTT_PUBLISH_QOS_1 (1)
+enum mqtt_publish_qos {
+    MQTT_PUBLISH_QOS_0 = 0,
+    MQTT_PUBLISH_QOS_1,
+};
 
 /**
  * @brief gsm_modem_init
@@ -85,7 +87,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port);
  * @return false Failed
  */
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
-                            uint8_t retires, uint8_t qos);
+                            uint8_t retires, enum mqtt_publish_qos qos);
 
 /**
  * @brief gsm_modem_mqtt_close

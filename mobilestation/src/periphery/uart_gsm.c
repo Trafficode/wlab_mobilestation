@@ -61,6 +61,7 @@ bool uart_gsm_read_bytes(uint8_t *rx_data, size_t exp_len, int32_t timeout) {
         }
     } while (!res && (start_ts + (int64_t)timeout) > k_uptime_get());
 
+    LOG_INF("Read %u bytes, expected %u", read_len, exp_len);
     return (res);
 }
 

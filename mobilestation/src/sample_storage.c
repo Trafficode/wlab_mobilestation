@@ -33,6 +33,10 @@ void sample_storage_init(void) {
     LOG_INF("sample_storage_init");
 }
 
+uint16_t sample_storage_get_samples_num(void) {
+    return (StoredN);
+}
+
 void sample_storage_mark_as_sent(uint16_t pull_idx) {
     PullIdx = (pull_idx + 1) % NVS_SAMPLE_MAX_NUM;
     StoredN--;

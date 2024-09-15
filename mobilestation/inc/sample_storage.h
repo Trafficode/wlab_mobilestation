@@ -41,6 +41,13 @@ void sample_storage_mark_as_sent(uint16_t pull_idx);
  */
 bool sample_storage_push(void *sample, size_t len);
 
+/**
+ * @brief Get number of samples waiting in arch
+ * 
+ * @return uint16_t Number of waiting samples
+ */
+uint16_t sample_storage_get_samples_num(void);
+
 #endif /* SAMPLE_STORAGE_H_ */
 /* ---------------------------------------------------------------------------
  * end of file

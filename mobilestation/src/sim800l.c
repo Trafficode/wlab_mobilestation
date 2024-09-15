@@ -380,16 +380,8 @@ DONE:
 }
 
 bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
-                            size_t payload_len, uint8_t retries, uint8_t qos) {
-    // For a PUBLISH packet with the above details:
-    // Fixed Header: 0x31 (for QoS 1 with retain flag set as needed)
-    // Remaining Length: 0x11 (17 bytes for Variable Header and Payload)
-    // Variable Header:
-    // Topic Name Length: 0x00 0x0B
-    // Topic Name: 0x74 0x65 0x73 0x74 0x2F 0x74 0x6F 0x70 0x69 0x63
-    // Message Identifier: 0x30 0x39
-    // Payload: 0x48 0x65 0x6C 0x6C 0x6F 0x20 0x57 0x6F 0x72 0x6C 0x64
-
+                            size_t payload_len, uint8_t retries,
+                            enum mqtt_publish_qos qos) {
     // AT+CIPSEND QoS=0 Publish message: 123, topic /wlabdb/bix
     // 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 78 31 32 33 1A
     // uint8_t pubbix[] = {0x30, 0x10, 0x00, 0x0B, 0x2F, 0x77, 0x6C,
@@ -415,11 +407,11 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
     memcpy(publish_buffer + offset, topic, topic_len);
     offset += topic_len;
 
-    // Set package identifier
-    publish_buffer[offset++] = publish_idx >> 8;
-    LOG_INF("publish_buffer0 %u", publish_buffer[offset - 1]);
-    publish_buffer[offset++] = publish_idx & 0x00FF;
-    LOG_INF("publish_buffer1 %u", publish_buffer[offset - 1]);
+    if (MQTT_PUBLISH_QOS_1 == qos) {
+        // Set package identifier
+        publish_buffer[offset++] = publish_idx >> 8;
+        publish_buffer[offset++] = publish_idx & 0x00FF;
+    }
 
     // Copy payload data
     memcpy(publish_buffer + offset, data, payload_len);
@@ -433,7 +425,9 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
         // There is no answer from broker for QoS = 0, PUBACK is sent
         // by broker for QoS = 1
         uint8_t read_buffer[6] = {0, 0, 0, 0, 0, 0};
-        if (!uart_gsm_read_bytes(read_buffer, 4, 4000)) {
+        // Read 1 + 4 bytes, new line char comes first
+        if (!uart_gsm_read_bytes(read_buffer, 5, 4000)) {
+            LOG_ERR("Failed to read 4 bytes PUBACK answer from broker");
             goto DONE;
         } else {
             // 0A - new line \n
