@@ -12,6 +12,9 @@
 
 #include "nvs_data.h"
 
+#define MQTT_PUBLISH_QOS_0 (0)
+#define MQTT_PUBLISH_QOS_1 (1)
+
 /**
  * @brief gsm_modem_init
  * Initilise neccessary staff.

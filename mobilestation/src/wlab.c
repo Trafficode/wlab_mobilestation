@@ -297,7 +297,8 @@ static void wlab_publish_arch_samples(uint8_t resend_num) {
                 sample->id[1], sample->id[0], sample->ts);
         sample->humidity_min = 0;
         rc = gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
-                                    (uint8_t *)sample_buff, sample_len, 1, 0);
+                                    (uint8_t *)sample_buff, sample_len, 1,
+                                    MQTT_PUBLISH_QOS_1);
         if (false == rc) {
             LOG_ERR("Resend sample failed...");
             break;
@@ -350,9 +351,9 @@ static bool wlab_publish(void) {
         goto DONE;
     }
 
-    if (!gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
-                                (uint8_t *)&sample_bin,
-                                sizeof(struct wlab_db_bin), 2, 0)) {
+    if (!gsm_modem_mqtt_publish(
+            WLAB_DEFAULT_SAMPLE_TOPIC, (uint8_t *)&sample_bin,
+            sizeof(struct wlab_db_bin), 2, MQTT_PUBLISH_QOS_1)) {
         LOG_ERR("Publish to MQTT failed");
         gsm_modem_mqtt_close();
         goto DONE;

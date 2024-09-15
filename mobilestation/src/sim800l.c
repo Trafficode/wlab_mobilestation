@@ -379,9 +379,18 @@ DONE:
     return (res);
 }
 
-bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
-                            uint8_t retries, uint8_t qos) {
-    // AT+CIPSEND Publish message: 123, topic /wlabdb/bix
+bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
+                            size_t payload_len, uint8_t retries, uint8_t qos) {
+    // For a PUBLISH packet with the above details:
+    // Fixed Header: 0x31 (for QoS 1 with retain flag set as needed)
+    // Remaining Length: 0x11 (17 bytes for Variable Header and Payload)
+    // Variable Header:
+    // Topic Name Length: 0x00 0x0B
+    // Topic Name: 0x74 0x65 0x73 0x74 0x2F 0x74 0x6F 0x70 0x69 0x63
+    // Message Identifier: 0x30 0x39
+    // Payload: 0x48 0x65 0x6C 0x6C 0x6F 0x20 0x57 0x6F 0x72 0x6C 0x64
+
+    // AT+CIPSEND QoS=0 Publish message: 123, topic /wlabdb/bix
     // 30 10 00 0B 2F 77 6C 61 62 64 62 2F 62 69 78 31 32 33 1A
     // uint8_t pubbix[] = {0x30, 0x10, 0x00, 0x0B, 0x2F, 0x77, 0x6C,
     //                     0x61, 0x62, 0x64, 0x62, 0x2F, 0x62, 0x69,
@@ -389,25 +398,38 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
     bool res = false;
     uint8_t publish_buffer[128];
     size_t topic_len = strlen(topic);
+    static uint16_t publish_idx = 0;
 
-    // 1B: PacketType 1B: RemainingLen + 2B: TopicLen + Topic + Data
-    size_t total_len = 1 + 1 + 2 + strlen(topic) + len;
+    // 1B:PacketType 1B:RemainingLen + 2B:TopicLen + Topic + 2B:PKG_IDX + Data
+    size_t total_len = 1 + 1 + 2 + strlen(topic) + 2 + payload_len;
 
-    // publish_buffer[0] = 0x30;   // MQTT PUBLISH packet type, QoS = 0
-    publish_buffer[0] =
-        0x30 | (qos << 1);   // MQTT PUBLISH packet type, QoS = 1
-    publish_buffer[1] = 2 + strlen(topic) + len;   // Remaining length
+    // Use desired passed QoS
+    publish_buffer[0] = 0x30 | (qos << 1);
+    publish_buffer[1] =
+        2 + strlen(topic) + 2 + payload_len;   // Remaining length
     publish_buffer[2] = (uint8_t)(topic_len >> 8);
     publish_buffer[3] = (uint8_t)(topic_len & 0x00FF);
-    memcpy(publish_buffer + 4, topic, topic_len);
-    memcpy(publish_buffer + 4 + topic_len, data, len);
+    uint8_t offset = 4;
+
+    // Setup message topic
+    memcpy(publish_buffer + offset, topic, topic_len);
+    offset += topic_len;
+
+    // Set package identifier
+    publish_buffer[offset++] = publish_idx >> 8;
+    LOG_INF("publish_buffer0 %u", publish_buffer[offset - 1]);
+    publish_buffer[offset++] = publish_idx & 0x00FF;
+    LOG_INF("publish_buffer1 %u", publish_buffer[offset - 1]);
+
+    // Copy payload data
+    memcpy(publish_buffer + offset, data, payload_len);
     publish_buffer[total_len++] = 0x1A;   // End
 
     if (!gsm_modem_cipsend(publish_buffer, total_len, 4000, retries)) {
         goto DONE;
     }
 
-    if (qos > 0) {
+    if (MQTT_PUBLISH_QOS_1 == qos) {
         // There is no answer from broker for QoS = 0, PUBACK is sent
         // by broker for QoS = 1
         uint8_t read_buffer[6] = {0, 0, 0, 0, 0, 0};
@@ -420,18 +442,21 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data, size_t len,
             // XX - package identifier being acknowledged msb
             // XX - package identifier being acknowledged lsb
             //  - connect return code, 0 - success
+            LOG_INF("PUBACK 0x%02X 0x%02X 0x%02X 0x%02X", read_buffer[1],
+                    read_buffer[2], read_buffer[3], read_buffer[4]);
             if ((0x40 != read_buffer[1]) || (0x02 != read_buffer[2])) {
-                LOG_ERR("Bad PUBACK answer from broker: %02X %02X",
-                        read_buffer[1], read_buffer[2]);
+                LOG_ERR("Bad PUBACK %02X %02X", read_buffer[1], read_buffer[2]);
                 goto DONE;
             } else {
-                LOG_INF("PUBACK");
+                uint16_t pub_idx = (read_buffer[3] << 8) | read_buffer[4];
+                LOG_INF("PUBACK PUBIDX %u %u", publish_idx, pub_idx);
             }
         }
     }
 
     res = true;
 DONE:
+    publish_idx++;   // Increment publish index
     return (res);
 }
 
