@@ -51,6 +51,8 @@ bool sample_storage_pull(void *sample, size_t pull_len, uint16_t *pull_idx) {
         goto DONE;
     }
 
+    LOG_INF("PULL PushIdx %u PullIdx %u N %u", PushIdx, PullIdx, StoredN);
+
     if (StoredN > 0) {
         res = read_sample_idx(buffer, NVS_SAMPLE_SIZE, PullIdx);
         if (!res) {
@@ -77,7 +79,7 @@ bool sample_storage_push(void *sample, size_t push_len) {
         goto DONE;
     }
 
-    LOG_INF("PushIdx %u PullIdx %u\n", PushIdx, PullIdx);
+    LOG_INF("PUSH PushIdx %u PullIdx %u N %u", PushIdx, PullIdx, StoredN);
     if (NVS_SAMPLE_MAX_NUM == StoredN) {
         LOG_ERR("No free space to push sample in");
     } else {

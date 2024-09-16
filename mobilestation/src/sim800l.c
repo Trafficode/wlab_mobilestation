@@ -211,14 +211,21 @@ DONE:
 }
 
 bool gsm_modem_reset(void) {
+    bool res = true;
+    LOG_INF("Modem reset start...");
     gpio_sim800l_rst_down();
     k_sleep(K_MSEC(500));   // At least 100ms
     gpio_sim800l_rst_up();
-    k_sleep(K_MSEC(5000));   // 2-5sec
+    // k_sleep(K_MSEC(5000));   // 2-5sec
+
     // ATZ
     // AT&F
     // AT+RESTORE
-    return (true);
+    // AT+CFUN=1,1
+    // OK
+    // res = gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 2000, 2, 2000);
+    LOG_INF("Modem reset done.");
+    return (res);
 }
 
 bool gsm_modem_wakeup(void) {

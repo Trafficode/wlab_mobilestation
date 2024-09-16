@@ -55,6 +55,8 @@ struct __attribute__((packed)) wlab_db_bin {
 
 LOG_MODULE_REGISTER(WLAB, LOG_LEVEL_DBG);
 
+#define WLAB_RESEND_MAX_NUM (1)
+
 static void wlab_buffer_commit(struct wlab_buffer *buffer, int16_t val,
                                int64_t ts);
 static void wlab_buffer_init(struct wlab_buffer *buffer, int64_t ts);
@@ -64,7 +66,6 @@ static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
-static void wlab_publish_arch_samples(uint8_t resend_num);
 
 static void wlab_publish_succ_led_scene(void) {
     // No aciton
@@ -132,6 +133,7 @@ static int64_t UpdateTsUptimeSec;
 static uint64_t DevieId;
 struct mqtt_config MqttConfig = {};
 struct apn_config ApnConfig = {};
+static uint8_t PubErrorCnt = 0;
 
 const struct device *const Sht3xDev = DEVICE_DT_GET_ONE(sensirion_sht3xd);
 
@@ -162,6 +164,11 @@ void wlab_init(void) {
         startup_try++;
         if (!gsm_modem_wakeup()) {
             LOG_ERR("Wakeup failed");
+            continue;
+        }
+
+        if (!gsm_modem_reset()) {
+            LOG_ERR("Reset modem failed");
             continue;
         }
 
@@ -283,6 +290,12 @@ static bool wlab_publish(void) {
         goto DONE;
     }
 
+    if (4 == PubErrorCnt) {
+        LOG_WRN("Reset gsm modem!");
+        gsm_modem_reset();
+        PubErrorCnt = 0;
+    }
+
     if (!gsm_modem_test()) {
         LOG_ERR("No communication with modem");
         goto DONE;
@@ -319,7 +332,7 @@ static bool wlab_publish(void) {
         // XXXYYYYY
         // XXX sumples number
         // YYYYY semples type
-        sample_bin[0].version |= (1 << 5);
+        sample_bin[0].version |= (WLAB_RESEND_MAX_NUM << 5);
         sample_bin[1].humidity_min = 0;
     } else {
         LOG_INF("Arch empty");
@@ -336,15 +349,20 @@ static bool wlab_publish(void) {
         goto DONE;
     }
 
-    sample_storage_mark_as_sent(pull_idx);
+    if (pull_rc) {
+        sample_storage_mark_as_sent(pull_idx);
+    }
+
     gsm_modem_mqtt_close();
+    PubErrorCnt = 0;
     res = true;
 DONE:
-    if ((false == res) && (sample_bin[0].version != 0)) {
+    if (false == res) {
         LOG_INF("PUSH ID %02X%02X%02X%02X%02X%02X %lli", sample_bin[0].id[5],
                 sample_bin[0].id[4], sample_bin[0].id[3], sample_bin[0].id[2],
                 sample_bin[0].id[1], sample_bin[0].id[0], sample_bin[0].ts);
         sample_storage_push(&sample_bin[0], sizeof(struct wlab_db_bin));
+        PubErrorCnt++;
     }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
     return (res);

@@ -137,6 +137,21 @@ void nvs_storage_sample_mark_as_sent(uint16_t pull_idx);
  */
 bool nvs_storage_sample_push(void *sample, size_t len);
 
+/**
+ * @brief Set/Reset boot counter value
+ * 
+ * @param bootc New boot counter value
+ * @return int 0 if success, -EIO otherwise
+ */
+int nvs_data_bootc_set(uint32_t bootc);
+
+/**
+ * @brief Get actual boot counter
+ * 
+ * @param bootc Pointer where data will be stored
+ */
+void nvs_data_bootc_get(uint32_t *bootc);
+
 #endif /* NVS_DATA_H_ */
 /* ---------------------------------------------------------------------------
  * end of file

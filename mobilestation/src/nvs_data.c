@@ -152,6 +152,22 @@ void nvs_data_apn_config_get(struct apn_config *apnconf) {
     }
 }
 
+int nvs_data_bootc_set(uint32_t bootc) {
+    int ret = 0;
+    size_t len = sizeof(uint32_t);
+    if (len == nvs_write(&Fs, NVS_ID_BOOT_COUNT, &bootc, len)) {
+        LOG_DBG("BootC config set success");
+    } else {
+        LOG_ERR("BootC config set failed");
+        ret = -EIO;
+    }
+    return (ret);
+}
+
+void nvs_data_bootc_get(uint32_t *bootc) {
+    nvs_read(&Fs, NVS_ID_BOOT_COUNT, bootc, sizeof(uint32_t));
+}
+
 int nvs_data_apn_config_set(struct apn_config *apnconf) {
     __ASSERT((apnconf != NULL), "Null pointer passed");
     int ret = 0;

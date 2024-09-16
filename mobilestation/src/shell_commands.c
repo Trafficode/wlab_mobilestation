@@ -13,6 +13,29 @@
 #include "nvs_data.h"
 #include "periphery/uart_gsm.h"
 
+// (set boot counter)             $ bootc <boot_counter_int>
+// bootc 0 - reset boot counter
+static int cmd_bootc(const struct shell *shell, size_t argc, char *argv[]) {
+    uint32_t boot_counter = 0;
+
+    nvs_data_bootc_get(&boot_counter);
+    shell_fprintf(shell, SHELL_NORMAL, "\tboot_counter: %" PRIu32 "\n",
+                  boot_counter);
+
+    if (2 == argc) {
+        boot_counter = strtoul(argv[1], NULL, 10);
+        if (0 == nvs_data_bootc_set(boot_counter)) {
+            shell_fprintf(shell, SHELL_NORMAL, "bootc: %" PRIu32 "\n",
+                          boot_counter);
+            shell_fprintf(shell, SHELL_NORMAL, "\tOK!\n");
+        } else {
+            shell_fprintf(shell, SHELL_NORMAL, "\tFailed!\n");
+        }
+    }
+
+    return (0);
+}
+
 // $ mqttconf <hostname/ip> <port>
 static int cmd_mqtt_config(const struct shell *shell, size_t argc,
                            char *argv[]) {
@@ -195,25 +218,32 @@ SHELL_CMD_REGISTER(pconfig, NULL,
                    cmd_pconfig);
 
 SHELL_CMD_REGISTER(mqttconf, NULL,
-                   "Configure mqtt worker settings\n"
-                   "Usage:\n"
+                   "Configure mqtt worker settings \n"
+                   "Usage:                         \n"
                    "$ mqttconf <hostname/ip> <port>\n"
-                   "$ mqttconf 192.168.1.10 1883",
+                   "$ mqttconf 192.168.1.10 1883     ",
                    cmd_mqtt_config);
 
 SHELL_CMD_REGISTER(deviceid, NULL,
                    "Set custom wlab device id\n"
-                   "Usage:\n"
+                   "Usage:                   \n"
                    "(set custom wlab id)             $ deviceid <str_hex_id>\n"
                    "(set custom wlab id)             $ deviceid 1122EEFF22AA\n",
                    cmd_deviceid);
 
 SHELL_CMD_REGISTER(pubp, NULL,
                    "Set wlab publish period in seconds\n"
-                   "Usage:\n"
-                   "$ pubp <publish_period_mins>\n"
-                   "$ pubp 10                     ",
+                   "Usage:                            \n"
+                   "$ pubp <publish_period_mins>      \n"
+                   "$ pubp 10                           ",
                    cmd_wlab_publish_period);
+
+SHELL_CMD_REGISTER(bootc, NULL,
+                   "Set/Reset boot counter      \n"
+                   "Usage:                      \n"
+                   "$ bootc <boot_counter_int>  \n"
+                   "$ bootc 0                     ",
+                   cmd_bootc);
 
 /* ---------------------------------------------------------------------------
  * end of file
