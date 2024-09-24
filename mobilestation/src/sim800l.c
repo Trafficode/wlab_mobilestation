@@ -58,25 +58,25 @@ static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
 }
 
 static bool gsm_modem_cmd_base_str(uint8_t *str_cmd, const char *expected,
-                                   int32_t timeout, uint8_t tries,
+                                   int32_t timeout, uint8_t retries,
                                    uint32_t delay_between) {
     uint8_t try = 0;
     LOG_INF("> %s", str_cmd);
 
     char cmd_buffer[128];
     size_t str_cmd_len = snprintf(cmd_buffer, 64, "\n%s\n", str_cmd);
-    for (try = 0; try < tries; try++) {
+    for (try = 0; try < retries; try++) {
         if (gsm_modem_cmd_base(cmd_buffer, str_cmd_len, expected, timeout)) {
             break;
         } else {
-            LOG_WRN("Cmd %s try %u/%u failed", str_cmd, try + 1, tries);
+            LOG_WRN("Cmd %s try %u/%u failed", str_cmd, try + 1, retries);
             if (delay_between > 0) {
                 k_sleep(K_MSEC(delay_between));
             }
         }
     }
 
-    bool res = (try < tries) ? true : false;
+    bool res = (try < retries) ? true : false;
     if (false == res) {
         LOG_ERR("Cmd %s failed", str_cmd);
     } else {
@@ -120,7 +120,7 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
         uart_gsm_rx_clear();
 
         char at_cipsend[] = "\nAT+CIPSEND\n";
-        LOG_INF("> %s", at_cipsend + 1);
+        LOG_INF("> AT+CIPSEND LEN = %u bytes", len);
         uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
 
         int64_t start_ts = k_uptime_get();
@@ -212,7 +212,7 @@ DONE:
 
 bool gsm_modem_reset(void) {
     bool res = true;
-    LOG_INF("Modem reset start...");
+    LOG_INF("*** gsm_modem_reset...");
     gpio_sim800l_rst_down();
     k_sleep(K_MSEC(500));   // At least 100ms
     gpio_sim800l_rst_up();
@@ -224,7 +224,7 @@ bool gsm_modem_reset(void) {
     // AT+CFUN=1,1
     // OK
     // res = gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 2000, 2, 2000);
-    LOG_INF("Modem reset done.");
+    LOG_INF("gsm_modem_reset done");
     return (res);
 }
 
@@ -336,7 +336,7 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
     // CONNECT OK
     char send_data[64];
     sprintf(send_data, "AT+CIPSTART=\"TCP\",\"%s\",\"%u\"", domain, port);
-    if (!gsm_modem_cmd_base_str(send_data, "CONNECT OK", 4000, 2, 1000)) {
+    if (!gsm_modem_cmd_base_str(send_data, "CONNECT OK", 8000, 2, 1000)) {
         goto DONE;
     }
 
@@ -424,7 +424,7 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
     memcpy(publish_buffer + offset, data, payload_len);
     publish_buffer[total_len++] = 0x1A;   // End
 
-    if (!gsm_modem_cipsend(publish_buffer, total_len, 4000, retries)) {
+    if (!gsm_modem_cipsend(publish_buffer, total_len, 8000, retries)) {
         goto DONE;
     }
 

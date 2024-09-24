@@ -5,6 +5,7 @@
  */
 
 /dts-v1/;
+#include <dt-bindings/gpio/gpio.h>
 #include <nordic/nrf52840_qiaa.dtsi>
 #include "nrf52840_nano_v2_0-pinctrl.dtsi"
 
@@ -40,7 +41,7 @@
 		};
 	};
 
-	/* These aliases are provided for compatibility with samples */
+	// These aliases are provided for compatibility with samples
 	aliases {
 		led0 = &led0;
 		sw0 = &button0;

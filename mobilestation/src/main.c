@@ -45,7 +45,7 @@ int main(void) {
     gpio_status_led_set_state(0);
     gpio_user_btn_init();
     adc_battery_vol_init();
-    gpio_ext3v3_init();   // Disable external 3v3 by default
+    gpio_ext3v3_init();   // Enable external 3v3 by default
     nvs_data_init();
 
     ble_worker_init(20);
