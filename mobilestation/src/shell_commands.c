@@ -12,6 +12,7 @@
 
 #include "nvs_data.h"
 #include "periphery/uart_gsm.h"
+#include "wlab.h"
 
 // (set boot counter)             $ bootc <boot_counter_int>
 // bootc 0 - reset boot counter
@@ -178,6 +179,19 @@ static int cmd_apn(const struct shell *shell, size_t argc, char *argv[]) {
     return (0);
 }
 
+// pubrec
+static int cmd_pubrec(const struct shell *shell, size_t argc, char *argv[]) {
+    shell_fprintf(shell, SHELL_NORMAL, "Publish recover command enter...");
+
+    if(2 == argc) {
+        for(int32_t i = 0; i < atoi(argv[1]); i++) {
+            wlab_publish2(true);
+        }
+    }
+    shell_fprintf(shell, SHELL_NORMAL, "... done");
+    return (0);
+}
+
 // test
 static int cmd_test(const struct shell *shell, size_t argc, char *argv[]) {
     shell_fprintf(shell, SHELL_NORMAL, "Test command enter...");
@@ -191,6 +205,12 @@ SHELL_CMD_REGISTER(test, NULL,
                    "Usage:                      \n"
                    "$ test                        ",
                    cmd_test);
+
+SHELL_CMD_REGISTER(pubrec, NULL,
+                   "Publish failed samples      \n"
+                   "Usage:                      \n"
+                   "$ pubrec 2                    ",
+                   cmd_pubrec);
 
 SHELL_CMD_REGISTER(apn, NULL,
                    "Set APN configuration       \n"

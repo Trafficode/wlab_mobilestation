@@ -3,6 +3,7 @@
  * ---------------------------------------------------------------------------
  *  Name: main.c
  * --------------------------------------------------------------------------*/
+#include <debug/cpu_load.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <zephyr/bluetooth/bluetooth.h>
@@ -35,6 +36,7 @@ int main(void) {
     LOG_INF("Firmware: v%d Zephyr: %u.%u.%u", FIRMWARE_VERSION,
             SYS_KERNEL_VER_MAJOR(ver), SYS_KERNEL_VER_MINOR(ver),
             SYS_KERNEL_VER_PATCHLEVEL(ver));
+    cpu_load_init();
 
     // Need to be as one of the first, modem is entered into sleep
     // mode to avoid ble radio problems and save energy while ble
@@ -53,6 +55,10 @@ int main(void) {
 
     for (;;) {
         wlab_proc();
+        uint32_t cpu_load = cpu_load_get();
+        LOG_WRN("CPU load: %u.%03u%%", cpu_load / 1000, cpu_load % 1000);
+        cpu_load_reset();
+        k_sleep(K_MSEC(10 * 1000));
     }
     return 0;
 }

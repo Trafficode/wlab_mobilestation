@@ -66,7 +66,8 @@ static bool wlab_timestamp_sync(void);
 static void wlab_timestamp_check(void);
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample);
 static bool wlab_publish(void);
-static bool wlab_publish2(bool resend);
+
+K_MUTEX_DEFINE(PublishLock);
 
 static void wlab_publish_succ_led_scene(void) {
     // No aciton
@@ -246,9 +247,15 @@ void wlab_proc(void) {
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
         if (TempBuffer.cnt > 0) {
+            // if (wlab_publish()) {
+            //     // Try to resend sample in the middle of Piblish Period
+            //     wlab_publish_succ_led_scene();
+            // } else {
+            //     wlab_publish_failed_led_scene();
+            // }
             if (wlab_publish2(false)) {
-                // Try to resend sample 2 minutes later
-                resend_ts = ts + INT64_C(2 * 60);
+                // Try to resend sample in the middle of Piblish Period
+                resend_ts = ts + INT64_C(PublishPeriodSec / 2);
                 wlab_publish_succ_led_scene();
             } else {
                 resend_ts = INT64_MAX;
@@ -284,8 +291,6 @@ void wlab_proc(void) {
         }
         resend_ts = INT64_MAX;
     }
-
-    k_sleep(K_MSEC(10 * 1000));   // read sample every 10sec
 }
 
 static bool wlab_publish(void) {
@@ -383,13 +388,14 @@ DONE:
     return (res);
 }
 
-static bool wlab_publish2(bool resend) {
+bool wlab_publish2(bool resend) {
     bool res = false;
     struct wlab_db_bin sample_bin;
     uint16_t pull_idx = 0;
     bool pull_rc = false;
-    static uint8_t sample_cnt = 0;
+    static int sample_cnt = 0;
 
+    k_mutex_lock(&PublishLock, K_FOREVER);
     if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
         (0 == DevieId)) {
         LOG_ERR("Device not configured");
@@ -399,8 +405,8 @@ static bool wlab_publish2(bool resend) {
     if (!resend) {
         wlab_bin_package_prepare(&sample_bin);
         sample_cnt++;
-        if (0 == sample_cnt % 2) {
-            LOG_ERR("Fake failed");
+        if (0 == sample_cnt % 3) {
+            LOG_ERR("Fake failed!");
             goto DONE;
         }
     } else {
@@ -411,7 +417,7 @@ static bool wlab_publish2(bool resend) {
             res = true;
             goto DONE;
         }
-
+        sample_storage_mark_as_sent(pull_idx);
         sample_bin.humidity_min = 0;
         LOG_INF("PULL IDX %u ID %02X%02X%02X%02X%02X%02X %lli", pull_idx,
                 sample_bin.id[5], sample_bin.id[4], sample_bin.id[3],
@@ -445,11 +451,9 @@ static bool wlab_publish2(bool resend) {
         goto DONE;
     }
 
-    if (!resend) {
-        if (!wlab_timestamp_sync()) {
-            LOG_ERR("Time sync failed");
-            goto DONE;
-        }
+    if (!wlab_timestamp_sync()) {
+        LOG_ERR("Time sync failed");
+        goto DONE;
     }
 
     if (!gsm_modem_mqtt_connect(MqttConfig.broker, MqttConfig.port)) {
@@ -466,15 +470,11 @@ static bool wlab_publish2(bool resend) {
         goto DONE;
     }
 
-    if (pull_rc) {
-        sample_storage_mark_as_sent(pull_idx);
-    }
-
     gsm_modem_mqtt_close();
     PubErrorCnt = 0;
     res = true;
 DONE:
-    if (!res && !resend) {
+    if (!res) {
         LOG_INF("PUSH ID %02X%02X%02X%02X%02X%02X %lli", sample_bin.id[5],
                 sample_bin.id[4], sample_bin.id[3], sample_bin.id[2],
                 sample_bin.id[1], sample_bin.id[0], sample_bin.ts);
@@ -482,6 +482,7 @@ DONE:
         PubErrorCnt++;
     }
     gsm_modem_sleep();   // shuld it be repeated and repeated?
+    k_mutex_unlock(&PublishLock);
     return (res);
 }
 

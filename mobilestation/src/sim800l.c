@@ -25,6 +25,8 @@
 
 LOG_MODULE_REGISTER(SIM800L, LOG_LEVEL_DBG);
 
+static char printb[1024];
+
 static bool gsm_modem_cmd_base(uint8_t *data, size_t len, const char *expected,
                                int32_t timeout) {
     bool res = false;
@@ -119,9 +121,11 @@ bool gsm_modem_cipsend(uint8_t *data, size_t len, int32_t timeout,
         k_sleep(K_MSEC(1000));
         uart_gsm_rx_clear();
 
-        char at_cipsend[] = "\nAT+CIPSEND\n";
+        char at_cipsend[32];
+        // -1 to skip CTRL+Z (0x1A)
+        size_t at_len = sprintf(at_cipsend, "\nAT+CIPSEND=%u\n", len - 1);
         LOG_INF("> AT+CIPSEND LEN = %u bytes", len);
-        uart_gsm_send(at_cipsend, sizeof(at_cipsend) - 1);
+        uart_gsm_send(at_cipsend, at_len);
 
         int64_t start_ts = k_uptime_get();
         uint8_t chr = 0;
@@ -179,13 +183,7 @@ bool gsm_modem_config(void) {
         goto DONE;
     }
 
-    // AT+CFUN=1  Enable normal mode
-    // OK
-    if (!gsm_modem_cmd_base_str("AT+CFUN=1", "OK", 400, 2, 200)) {
-        goto DONE;
-    }
-
-    // AT+CSMINS?  Check is sim card inserted
+    // AT+CSMINS?  Check if sim card inserted
     // +CSMINS: 0,1 Inserted and ready
     // +CSMINS: 0,0 Not inserted
     if (!gsm_modem_cmd_base_str("AT+CSMINS?", "+CSMINS: 0,1", 400, 3, 200)) {
@@ -211,19 +209,13 @@ DONE:
 }
 
 bool gsm_modem_reset(void) {
-    bool res = true;
     LOG_INF("*** gsm_modem_reset...");
-    gpio_sim800l_rst_down();
-    k_sleep(K_MSEC(500));   // At least 100ms
-    gpio_sim800l_rst_up();
-    // k_sleep(K_MSEC(5000));   // 2-5sec
-
     // ATZ
     // AT&F
     // AT+RESTORE
     // AT+CFUN=1,1
     // OK
-    // res = gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 2000, 2, 2000);
+    bool res = gsm_modem_cmd_base_str("AT+CFUN=1,1", "OK", 2000, 2, 2000);
     LOG_INF("gsm_modem_reset done");
     return (res);
 }
@@ -375,7 +367,9 @@ bool gsm_modem_mqtt_connect(const char *domain, uint32_t port) {
         // x00 - connect return code, 0 - success
         const uint8_t expected[] = {'\n', 0x20, 0x02, 0x00, 0x00};
         if (0 != memcmp(read_buffer, expected, 5)) {
-            LOG_ERR("Broker answer bad");
+            LOG_ERR("Broker answer bad %02X %02X %02X %02X %02X",
+                    read_buffer[0], read_buffer[1], read_buffer[2],
+                    read_buffer[3], read_buffer[4]);
             goto DONE;
         }
     }
@@ -401,9 +395,10 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
 
     // 1B:PacketType 1B:RemainingLen + 2B:TopicLen + Topic + 2B:PKG_IDX + Data
     size_t total_len = 1 + 1 + 2 + strlen(topic) + 2 + payload_len;
+    uint8_t dup = qos ? 1 : 0;
 
     // Use desired passed QoS
-    publish_buffer[0] = 0x30 | (qos << 1);
+    publish_buffer[0] = 0x30 | (qos << 1) | (dup << 3);
     publish_buffer[1] =
         2 + strlen(topic) + 2 + payload_len;   // Remaining length
     publish_buffer[2] = (uint8_t)(topic_len >> 8);
@@ -423,6 +418,13 @@ bool gsm_modem_mqtt_publish(const char *topic, uint8_t *data,
     // Copy payload data
     memcpy(publish_buffer + offset, data, payload_len);
     publish_buffer[total_len++] = 0x1A;   // End
+
+    for (int i = 0; i < total_len; i++) {
+        sprintf(printb + (2 * i), "%02X", publish_buffer[i]);
+    }
+
+    LOG_INF("Publish: %s", printb);
+    LOG_INF("LEN: %u", total_len);
 
     if (!gsm_modem_cipsend(publish_buffer, total_len, 8000, retries)) {
         goto DONE;
