@@ -15,7 +15,6 @@
 * pconfig
 * help
 
-
 # LED scenes
 * BLE enabled at startup: Fast blinking for 20 seconds - don't stop once connection established
 * Startup network init success: Quick led blink
@@ -28,18 +27,11 @@
 # Release process
 * Add update and merged files to releases directory
 * Write down description into releases/README.md file
-* Make up version in version.h
+* Trigger up version in version.h
 * Create tag as version name
 
 # TODO
-* Verify cpu usage
-* Switch from toolchain 16.1 to 2.7.0
-* Storing not properly published samples to temporary storage
-* Storing not properly published samples to persistant
-* Sim800l commands: builtin retries, some command returns error from time to time
-  * AT+CSTT="internet","","" 
-  * AT+CIPSTATUS
-* Publishing with QoS = 1
+* Storing not properly published samples to persistant storage
 * Enable DC/DC instead of LDO
 * Why modem is blinking
 * Power saving modes
@@ -53,7 +45,15 @@
 # v5_ncs2_7_0
 
 ## DONE
+* Critical change, CIPSEND with predefined data length. Previous solution caused failed in sending samples that includes sensitive bytes.
 * Set device id using BLE NUS
+* Verify cpu usage, growing when publishing, <1% otherwise
+* Switch from toolchain 16.1 to 2.7.0
+* Storing not properly published samples to temporary/RAM storage
+* Sim800l commands: builtin retries, some command returns error from time to time
+  * AT+CSTT="internet","","" 
+  * AT+CIPSTATUS
+* Publishing with QoS = 1
 
 # v4_ncs2_7_0
 

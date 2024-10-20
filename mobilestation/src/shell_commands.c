@@ -183,11 +183,6 @@ static int cmd_apn(const struct shell *shell, size_t argc, char *argv[]) {
 static int cmd_pubrec(const struct shell *shell, size_t argc, char *argv[]) {
     shell_fprintf(shell, SHELL_NORMAL, "Publish recover command enter...");
 
-    if(2 == argc) {
-        for(int32_t i = 0; i < atoi(argv[1]); i++) {
-            wlab_publish2(true);
-        }
-    }
     shell_fprintf(shell, SHELL_NORMAL, "... done");
     return (0);
 }

@@ -213,7 +213,6 @@ void wlab_proc(void) {
     int16_t i_temp, i_humidity;
     int32_t batt_milliv;
     static uint8_t sensror_err_counter = 0;
-    static int64_t resend_ts = INT64_MAX;
 
     LOG_INF("Heart beat, sensor read...");
     int sensor_rc = sensor_sample_fetch(Sht3xDev);
@@ -247,18 +246,10 @@ void wlab_proc(void) {
     if (ts >= SampleTsSec + PublishPeriodSec) {
         // Send sample and sync time
         if (TempBuffer.cnt > 0) {
-            // if (wlab_publish()) {
-            //     // Try to resend sample in the middle of Piblish Period
-            //     wlab_publish_succ_led_scene();
-            // } else {
-            //     wlab_publish_failed_led_scene();
-            // }
-            if (wlab_publish2(false)) {
+            if (wlab_publish()) {
                 // Try to resend sample in the middle of Piblish Period
-                resend_ts = ts + INT64_C(PublishPeriodSec / 2);
                 wlab_publish_succ_led_scene();
             } else {
-                resend_ts = INT64_MAX;
                 wlab_publish_failed_led_scene();
             }
         } else {
@@ -281,21 +272,11 @@ void wlab_proc(void) {
         wlab_buffer_commit(&TempBuffer, i_temp, ts);
         wlab_buffer_commit(&HumBuffer, i_humidity, ts);
     }
-
-    if (resend_ts < ts) {
-        // Last time published successfully and takes at least 30sec from this time
-        if (wlab_publish2(true)) {
-            LOG_INF("Resend sample success");
-        } else {
-            LOG_ERR("Failed to resend sample");
-        }
-        resend_ts = INT64_MAX;
-    }
 }
 
 static bool wlab_publish(void) {
     bool res = false;
-    struct wlab_db_bin sample_bin[2];
+    struct wlab_db_bin sample_bin[1 + WLAB_RESEND_MAX_NUM];
 
     if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
         (0 == DevieId)) {
@@ -388,104 +369,6 @@ DONE:
     return (res);
 }
 
-bool wlab_publish2(bool resend) {
-    bool res = false;
-    struct wlab_db_bin sample_bin;
-    uint16_t pull_idx = 0;
-    bool pull_rc = false;
-    static int sample_cnt = 0;
-
-    k_mutex_lock(&PublishLock, K_FOREVER);
-    if ((0 == MqttConfig.broker[0]) || (0 == MqttConfig.port) ||
-        (0 == DevieId)) {
-        LOG_ERR("Device not configured");
-        goto DONE;
-    }
-
-    if (!resend) {
-        wlab_bin_package_prepare(&sample_bin);
-        sample_cnt++;
-        if (0 == sample_cnt % 3) {
-            LOG_ERR("Fake failed!");
-            goto DONE;
-        }
-    } else {
-        pull_rc = sample_storage_pull(&sample_bin, sizeof(struct wlab_db_bin),
-                                      &pull_idx);
-        if (!pull_rc) {
-            LOG_WRN("No samples waiting to be resend...");
-            res = true;
-            goto DONE;
-        }
-        sample_storage_mark_as_sent(pull_idx);
-        sample_bin.humidity_min = 0;
-        LOG_INF("PULL IDX %u ID %02X%02X%02X%02X%02X%02X %lli", pull_idx,
-                sample_bin.id[5], sample_bin.id[4], sample_bin.id[3],
-                sample_bin.id[2], sample_bin.id[1], sample_bin.id[0],
-                sample_bin.ts);
-    }
-
-    if (!gsm_modem_wakeup()) {
-        LOG_ERR("Failed to wakeup modem");
-        goto DONE;
-    }
-
-    if (4 == PubErrorCnt) {
-        LOG_WRN("Reset gsm modem!");
-        gsm_modem_reset();
-        PubErrorCnt = 0;
-    }
-
-    if (!gsm_modem_test()) {
-        LOG_ERR("No communication with modem");
-        goto DONE;
-    }
-
-    if (!gsm_modem_config()) {
-        LOG_ERR("Configure modem failed");
-        goto DONE;
-    }
-
-    if (!gsm_modem_net_setup(&ApnConfig)) {
-        LOG_ERR("Network up failed");
-        goto DONE;
-    }
-
-    if (!wlab_timestamp_sync()) {
-        LOG_ERR("Time sync failed");
-        goto DONE;
-    }
-
-    if (!gsm_modem_mqtt_connect(MqttConfig.broker, MqttConfig.port)) {
-        LOG_ERR("Connect to MQTT failed");
-        goto DONE;
-    }
-
-    size_t publish_len = sizeof(struct wlab_db_bin);
-    if (!gsm_modem_mqtt_publish(WLAB_DEFAULT_SAMPLE_TOPIC,
-                                (uint8_t *)&sample_bin, publish_len, 2,
-                                MQTT_PUBLISH_QOS_1)) {
-        LOG_ERR("Publish to MQTT failed");
-        gsm_modem_mqtt_close();
-        goto DONE;
-    }
-
-    gsm_modem_mqtt_close();
-    PubErrorCnt = 0;
-    res = true;
-DONE:
-    if (!res) {
-        LOG_INF("PUSH ID %02X%02X%02X%02X%02X%02X %lli", sample_bin.id[5],
-                sample_bin.id[4], sample_bin.id[3], sample_bin.id[2],
-                sample_bin.id[1], sample_bin.id[0], sample_bin.ts);
-        sample_storage_push(&sample_bin, sizeof(struct wlab_db_bin));
-        PubErrorCnt++;
-    }
-    gsm_modem_sleep();   // shuld it be repeated and repeated?
-    k_mutex_unlock(&PublishLock);
-    return (res);
-}
-
 static void wlab_bin_package_prepare(struct wlab_db_bin *sample) {
     sample->version = 0x01;
     sample->ts = TempBuffer.sample_ts;   // never mind if it is temp or humidity
@@ -553,7 +436,7 @@ static bool wlab_timestamp_sync(void) {
 
 static void wlab_timestamp_check(void) {
     // in case of very long publish period there can be situation where time after update
-    // will not be bigger than last SampleTs + PublishPeriod.
+    // will not be greater than last SampleTs + PublishPeriod.
     // Lets verify it here and wait if needed
 
     bool check_status = false;

@@ -24,16 +24,6 @@ void wlab_init(void);
  */
 void wlab_proc(void);
 
-/**
- * @brief Publish wlab sample or recover sample that failed
- * previously.
- * 
- * @param resend true to recover sample, false to send actual sample
- * @return true Success
- * @return false Failed
- */
-bool wlab_publish2(bool resend);
-
 #endif /* WLAB_H_ */
 /* ---------------------------------------------------------------------------
  * end of file
