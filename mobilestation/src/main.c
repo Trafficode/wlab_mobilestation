@@ -50,7 +50,7 @@ int main(void) {
     gpio_ext3v3_init();   // Enable external 3v3 by default
     nvs_data_init();
 
-    ble_worker_init(20);
+    ble_worker_init(30);
     wlab_init();
 
     for (;;) {

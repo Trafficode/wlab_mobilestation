@@ -98,6 +98,8 @@ void gsm_modem_init(void) {
     while (true) {
         if (gsm_modem_test()) {
             LOG_INF("Push modem into sleep mode");
+            // Enable uart driven sleep mode
+            gsm_modem_cmd_base_str("AT+CFUN=0", "OK", 1000, 4, 200);
             gsm_modem_sleep();
             break;
         } else {
